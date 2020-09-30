@@ -1,5 +1,6 @@
 set(sources client.c)
 set(exe ftpc)
+set(EXE_NAME ${exe} PARENT_SCOPE)
 add_executable(${exe} ${sources})
 target_include_directories(${exe} PUBLIC ${PROJECT_BINARY_DIR})
 install(TARGETS ${exe} DESTINATION bin)
