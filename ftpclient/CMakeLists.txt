@@ -1,6 +1,7 @@
-set(sources client.c)
+set(sources main.c repl.c)
 set(exe ftpc)
 set(EXE_NAME ${exe} PARENT_SCOPE)
 add_executable(${exe} ${sources})
 target_include_directories(${exe} PUBLIC ${PROJECT_BINARY_DIR})
+target_compile_definitions(${exe} PRIVATE _POSIX_C_SOURCE=200112L)
 install(TARGETS ${exe} DESTINATION bin)
