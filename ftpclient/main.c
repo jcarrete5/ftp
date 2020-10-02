@@ -60,8 +60,8 @@ static bool iptostr(struct addrinfo *info, char *dst) {
  * application and print an error message.
  */
 static void resolve_domain(const char *node, struct addrinfo **out) {
-    int err;
-    if (err = getaddrinfo(node, "ftp", NULL, out)) {
+    int err = getaddrinfo(node, "ftp", NULL, out);
+    if (err) {
         fprintf(stderr, FTPC_EXE_NAME": %s\n", gai_strerror(err));
         exit(EXIT_FAILURE);
     }
