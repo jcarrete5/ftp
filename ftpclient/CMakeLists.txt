@@ -1,4 +1,4 @@
-set(sources main.c repl.c)
+set(sources main.c repl.c log.c)
 set(exe ftpc)
 set(EXE_NAME ${exe} PARENT_SCOPE)
 add_executable(${exe} ${sources})

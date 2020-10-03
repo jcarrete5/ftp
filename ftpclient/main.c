@@ -24,6 +24,7 @@
 #include <arpa/inet.h>
 
 #include "repl.h"
+#include "log.h"
 
 /* Prints usage information about how to invoke the application. */
 static void usage() {
@@ -121,7 +122,8 @@ int main(int argc, char *argv[]) {
     struct addrinfo *addrlist;
     resolve_domain(hostname, &addrlist);
     FILE *const logfile = valid_logfile(logfilename);
+    /* logfile is closed in logging subsystem */
+    loginit(logfile);
     freeaddrinfo(addrlist);
-    fclose(logfile);
     return EXIT_SUCCESS;
 }
