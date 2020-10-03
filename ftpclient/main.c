@@ -23,6 +23,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "repl.h"
+
 /* Prints usage information about how to invoke the application. */
 static void usage() {
     fputs("usage: "FTPC_EXE_NAME" HOSTNAME LOGFILE [PORT]\n"
@@ -98,7 +100,7 @@ static uint16_t valid_port(const char *port) {
  * Validates the path and returns a file pointer in append mode for that path.
  * Quits the program if the path cannot be opened.
  */
-FILE *valid_logfile(const char *path) {
+static FILE *valid_logfile(const char *path) {
     FILE *const logfile = fopen(path, "a");
     if (!logfile) {
         perror(FTPC_EXE_NAME": Error opening log file");
