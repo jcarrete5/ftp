@@ -1,7 +1,7 @@
 /*
  * CS472 HW 2
  * Jason R. Carrete
- * client.c
+ * main.c
  *
  * This module is the main entry point for the application. It handles parsing
  * command-line arguments and hands off control to the REPL.
