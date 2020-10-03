@@ -20,6 +20,7 @@ static FILE *logfile;
 /* Print a message before any log messages get written. */
 static void prolog() {
     fputs("~~~~~~~~~~ session start ~~~~~~~~~~\n", logfile);
+    fputs(FTPC_EXE_NAME" "FTPC_VERSION"\n", logfile);
 }
 
 /*
