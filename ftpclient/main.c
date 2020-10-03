@@ -94,6 +94,19 @@ static uint16_t valid_port(const char *port) {
     return val;
 }
 
+/*
+ * Validates the path and returns a file pointer in append mode for that path.
+ * Quits the program if the path cannot be opened.
+ */
+FILE *valid_logfile(const char *path) {
+    FILE *const logfile = fopen(path, "a");
+    if (!logfile) {
+        perror(FTPC_EXE_NAME": Error opening log file");
+        exit(EXIT_FAILURE);
+    }
+    return logfile;
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         fputs(FTPC_EXE_NAME": Not enough arguments\n", stderr);
@@ -105,10 +118,8 @@ int main(int argc, char *argv[]) {
     const uint16_t port = argc > 3 ? valid_port(argv[3]) : FTPC_DEFAULT_PORT;
     struct addrinfo *addrlist;
     resolve_domain(hostname, &addrlist);
-    for (struct addrinfo *p = addrlist; p; p = p->ai_next) {
-        char ipstr[INET6_ADDRSTRLEN];
-        iptostr(p, ipstr);
-        puts(ipstr);
-    }
+    FILE *const logfile = valid_logfile(logfilename);
+    freeaddrinfo(addrlist);
+    fclose(logfile);
     return EXIT_SUCCESS;
 }
