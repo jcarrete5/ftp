@@ -63,6 +63,7 @@ static void prefix() {
 /* Suffix of all log messages. */
 static void suffix() {
     fprintf(logfile, "\n");
+    fflush(logfile);
 }
 
 void loginfo(const char *s) {
