@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <time.h>
 
 static FILE *logfile;
@@ -66,20 +67,32 @@ static void suffix() {
     fflush(logfile);
 }
 
-void loginfo(const char *s) {
+void loginfo(const char *fmt, ...) {
     prefix();
-    fprintf(logfile, "[INFO] %s", s);
+    fputs("[INFO] ", logfile);
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(logfile, fmt, args);
+    va_end(args);
     suffix();
 }
 
-void logwarn(const char *s) {
+void logwarn(const char *fmt, ...) {
     prefix();
-    fprintf(logfile, "[WARN] %s", s);
+    fputs("[WARN] ", logfile);
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(logfile, fmt, args);
+    va_end(args);
     suffix();
 }
 
-void logerr(const char *s) {
+void logerr(const char *fmt, ...) {
     prefix();
-    fprintf(logfile, "[ERROR] %s", s);
+    fputs("[ERROR] ", logfile);
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(logfile, fmt, args);
+    va_end(args);
     suffix();
 }

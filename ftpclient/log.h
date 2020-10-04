@@ -5,8 +5,8 @@
 
 /* Initialize the logging subsystem with a logfile to append to. */
 void loginit(FILE *const logfile);
-void loginfo(const char *s);
-void logwarn(const char *s);
-void logerr(const char *s);
+void loginfo(const char *fmt, ...);
+void logwarn(const char *fmt, ...);
+void logerr(const char *fmt, ...);
 
 #endif /* FTPC_LOG_H */
