@@ -39,7 +39,7 @@ static void usage() {
  * Converts struct addrinfo to an ipv4 or ipv6 string. dst must be large enough
  * to store an ipv4 or ipv6 address. Returns true on success.
  */
-static bool iptostr(struct addrinfo *info, char *dst) {
+static bool addrtostr(struct addrinfo *info, char *dst) {
     struct sockaddr_in *ipv4;
     struct sockaddr_in6 *ipv6;
     switch (info->ai_family) {
@@ -63,7 +63,10 @@ static bool iptostr(struct addrinfo *info, char *dst) {
  * application and print an error message.
  */
 static void resolve_domain(const char *node, struct addrinfo **out) {
-    int err = getaddrinfo(node, "ftp", NULL, out);
+    struct addrinfo hints = {};
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_socktype = SOCK_STREAM;
+    int err = getaddrinfo(node, "ftp", &hints, out);
     if (err) {
         fprintf(stderr, FTPC_EXE_NAME": %s\n", gai_strerror(err));
         exit(EXIT_FAILURE);
@@ -110,6 +113,32 @@ static FILE *valid_logfile(const char *path) {
     return logfile;
 }
 
+/*
+ * Initialize connection between user-PI and server-PI. Then hand off control
+ * to the REPL.
+ */
+static void init_conn(struct addrinfo *const addrlist) {
+    for (struct addrinfo *info = addrlist; info; info = info->ai_next) {
+        const int sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+        if (sock == 0) {
+            perror(FTPC_EXE_NAME": Failed to create socket");
+            logerr("Failed to create socket");
+            exit(EXIT_FAILURE);
+        }
+        char ipstr[INET6_ADDRSTRLEN];
+        if (addrtostr(info, ipstr)) {
+            loginfo("Connecting to %s", ipstr);
+            if (connect(sock, info->ai_addr, info->ai_addrlen) != -1) {
+                loginfo("Connected to %s", ipstr);
+            } else {
+                perror(FTPC_EXE_NAME": Failed to connect to remove host");
+                logwarn("Failed to connect to %s. Trying another", ipstr);
+            }
+        }
+    }
+    freeaddrinfo(addrlist);
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         fputs(FTPC_EXE_NAME": Not enough arguments\n", stderr);
@@ -124,6 +153,6 @@ int main(int argc, char *argv[]) {
     FILE *const logfile = valid_logfile(logfilename);
     /* logfile is closed in logging subsystem */
     loginit(logfile);
-    freeaddrinfo(addrlist);
+    init_conn(addrlist);
     return EXIT_SUCCESS;
 }
