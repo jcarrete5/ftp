@@ -7,6 +7,7 @@
  * command-line arguments and hands off control to the REPL.
  */
 
+
 #include "config.h"
 
 #include <stdio.h>
@@ -118,6 +119,7 @@ static FILE *valid_logfile(const char *path) {
  * to the REPL.
  */
 static void init_conn(struct addrinfo *const addrlist) {
+    /* Try to connect to a resolved address. Exit if all addresses fail. */
     for (struct addrinfo *info = addrlist; info; info = info->ai_next) {
         const int sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
         if (sock == 0) {
@@ -126,17 +128,22 @@ static void init_conn(struct addrinfo *const addrlist) {
             exit(EXIT_FAILURE);
         }
         char ipstr[INET6_ADDRSTRLEN];
-        if (addrtostr(info, ipstr)) {
-            loginfo("Connecting to %s", ipstr);
-            if (connect(sock, info->ai_addr, info->ai_addrlen) != -1) {
-                loginfo("Connected to %s", ipstr);
-            } else {
-                perror(FTPC_EXE_NAME": Failed to connect to remove host");
-                logwarn("Failed to connect to %s. Trying another", ipstr);
-            }
+        addrtostr(info, ipstr);
+        loginfo("Connecting to %s", ipstr);
+        if (connect(sock, info->ai_addr, info->ai_addrlen) == 0) {
+            loginfo("Connected to %s", ipstr);
+            printf("Connected to %s\n", ipstr);
+            freeaddrinfo(addrlist);
+            repl(sock);
+            return;
+        } else {
+            logwarn("Failed to connect to %s trying another address", ipstr);
         }
     }
-    freeaddrinfo(addrlist);
+    char msg[] = "Failed to connect to any address";
+    logerr(msg);
+    printf(FTPC_EXE_NAME": %s\n", msg);
+    exit(EXIT_FAILURE);
 }
 
 int main(int argc, char *argv[]) {
