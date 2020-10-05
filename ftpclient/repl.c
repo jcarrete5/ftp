@@ -61,11 +61,29 @@ static void login_with_credentials(void) {
  * string is dynamically allocated and **must** be freed after use.
  */
 const char *get_input_str(void) {
-    char *buf = calloc(MIN_STR_BUFFER_SIZE, sizeof(char));
+    size_t size = MIN_STR_BUFFER_SIZE;
+    char *buf = calloc(size, sizeof(char));
     if (!buf) {
         logerr("Failed to allocate memory for user input");
         longjmp(err_jmp_buf, FATAL_ERROR);
     }
+    size_t i = 0;
+    char ch;
+    while ((ch=getchar()) != EOF && ch != '\n') {
+        buf[i++] = ch;
+        /* +1 because we need to leave room for '\0' */
+        if (i + 1 == size) {
+            void *newptr = reallocarray(buf, size+=64, sizeof *buf);
+            if (newptr) {
+                buf = newptr;
+            } else {
+                logerr("Failed to reallocate memory for user input");
+                longjmp(err_jmp_buf, FATAL_ERROR);
+            }
+        }
+    }
+    buf[size - 1] = '\0';
+    return buf;
 }
 
 /* Start the REPL for the user-PI. */
