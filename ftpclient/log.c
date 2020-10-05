@@ -18,38 +18,39 @@
 
 static FILE *logfile;
 
-/* Print a message before any log messages get written. */
-static void prolog() {
+/* Execute before any log functions have been called. */
+static void prolog(void) {
     fputs("~~~~~~~~~~ session start ~~~~~~~~~~\n", logfile);
     fputs(FTPC_EXE_NAME" "FTPC_VERSION"\n", logfile);
 }
 
 /*
- * Print a message when the logging subsystem is stopped i.e. when the
+ * Execute just before the logging subsystem is stopped i.e. when the
  * application stops.
  */
-static void epilog() {
+static void epilog(void) {
     fputs("~~~~~~~~~~~ session end ~~~~~~~~~~~\n\n", logfile);
 }
 
 /* Clean up any resources used. */
-static void logdeinit() {
+static void logdeinit(void) {
     fclose(logfile);
 }
 
+/* Initialize the logging subsystem. Assumes file is non-NULL. */
 void loginit(FILE *const file) {
-    if (file) {
-        logfile = file;
-    } else {
-        fputs(FTPC_EXE_NAME": Failed to init logging; file is NULL", stderr);
-    }
+    logfile = file;
     prolog();
-    atexit(logdeinit);
-    atexit(epilog);
+    if (atexit(logdeinit)) {
+        logwarn("Log file will not be closed on exit");
+    }
+    if (atexit(epilog)) {
+        logwarn("Log epilog will not execute on exit");
+    }
 }
 
-/* Prefix of all log messages. */
-static void prefix() {
+/* Execute immediately before each log message. */
+static void prefix(void) {
     const time_t t = time(NULL);
     if (t == (time_t) -1) {
         fprintf(logfile, "Unknown time ");
@@ -61,12 +62,13 @@ static void prefix() {
     }
 }
 
-/* Suffix of all log messages. */
-static void suffix() {
+/* Execute immediately after each log message. */
+static void suffix(void) {
     fprintf(logfile, "\n");
     fflush(logfile);
 }
 
+/* Log an information message. */
 void loginfo(const char *fmt, ...) {
     prefix();
     fputs("[INFO] ", logfile);
@@ -77,6 +79,7 @@ void loginfo(const char *fmt, ...) {
     suffix();
 }
 
+/* Log a warning message. */
 void logwarn(const char *fmt, ...) {
     prefix();
     fputs("[WARN] ", logfile);
@@ -87,6 +90,7 @@ void logwarn(const char *fmt, ...) {
     suffix();
 }
 
+/* Log an error message. */
 void logerr(const char *fmt, ...) {
     prefix();
     fputs("[ERROR] ", logfile);

@@ -1,4 +1,4 @@
-cs472-ftpclient
+cs472-ftp
 ===============
 Written by Jason Carrete (jrc394@drexel.edu)
 
@@ -18,4 +18,6 @@ Compile sources and install
 
 Run the application
 
-    out/bin/ftpclient HOST LOGFILE [PORT]
+    out/bin/ftpc HOST LOGFILE [PORT]
+
+*Running the application with no arguments will print more detailed usage information*

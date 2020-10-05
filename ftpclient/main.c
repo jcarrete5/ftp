@@ -28,7 +28,7 @@
 #include "log.h"
 
 /* Prints usage information about how to invoke the application. */
-static void usage() {
+static void usage(void) {
     fputs("usage: "FTPC_EXE_NAME" HOSTNAME LOGFILE [PORT]\n"
           "    HOSTNAME - FQDN or IP address of the remote host to connect to\n"
           "    LOGFILE - Path to output log information to\n"
@@ -121,23 +121,24 @@ static FILE *valid_logfile(const char *path) {
 static void init_conn(struct addrinfo *const addrlist) {
     /* Try to connect to a resolved address. Exit if all addresses fail. */
     for (struct addrinfo *info = addrlist; info; info = info->ai_next) {
+        char ipstr[INET6_ADDRSTRLEN];
+        addrtostr(info, ipstr);
         const int sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
         if (sock == 0) {
             perror(FTPC_EXE_NAME": Failed to create socket");
-            logerr("Failed to create socket");
-            exit(EXIT_FAILURE);
+            logerr("Failed to create socket for %s", ipstr);
         }
-        char ipstr[INET6_ADDRSTRLEN];
-        addrtostr(info, ipstr);
-        loginfo("Connecting to %s", ipstr);
+        loginfo("Trying %s", ipstr);
         if (connect(sock, info->ai_addr, info->ai_addrlen) == 0) {
+            puts(FTPC_EXE_NAME" "FTPC_VERSION);
             loginfo("Connected to %s", ipstr);
             printf("Connected to %s\n", ipstr);
             freeaddrinfo(addrlist);
+            /* Socket will be closed on exit in the repl */
             repl(sock);
             return;
         } else {
-            logwarn("Failed to connect to %s trying another address", ipstr);
+            logwarn("Failed to connect to %s; trying another address", ipstr);
         }
     }
     char msg[] = "Failed to connect to any address";
@@ -155,11 +156,11 @@ int main(int argc, char *argv[]) {
     const char *hostname = argv[1];
     const char *logfilename = argv[2];
     const uint16_t port = argc > 3 ? valid_port(argv[3]) : FTPC_DEFAULT_PORT;
+    FILE *const logfile = valid_logfile(logfilename);
+    /* logfile is closed in logging subsystem on exit */
+    loginit(logfile);
     struct addrinfo *addrlist;
     resolve_domain(hostname, &addrlist);
-    FILE *const logfile = valid_logfile(logfilename);
-    /* logfile is closed in logging subsystem */
-    loginit(logfile);
     init_conn(addrlist);
     return EXIT_SUCCESS;
 }

@@ -20,6 +20,12 @@
 #include "repl.h"
 
 /*
+ * TODO
+ * MUST implement USER, PASS, CWD, QUIT, PASV, EPSV, PORT, EPRT, RETR, STOR,
+ * PWD, SYST, LIST, and HELP commands
+ */
+
+/*
  * Returns a message buffer sized according to the send buffer size of the
  * socket.
  */

@@ -1,3 +1,11 @@
+/*
+ * CS472 HW 2
+ * Jason R. Carrete
+ * ftp.h
+ *
+ * Header for ftp.c
+ */
+
 #ifndef FTPC_FTP_H
 #define FTPC_FTP_H
 
