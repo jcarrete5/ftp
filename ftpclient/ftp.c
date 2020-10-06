@@ -7,8 +7,11 @@
  * server-PI. Each function is a wrapper around an FTP command.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <setjmp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -18,6 +21,7 @@
 #include "ftp.h"
 #include "log.h"
 #include "repl.h"
+#include "vector.h"
 
 /*
  * TODO
@@ -26,43 +30,91 @@
  */
 
 /*
- * Returns a message buffer sized according to the send buffer size of the
- * socket.
+ * **Not thread-safe**
+ * Get the next character from sockfd.
  */
-static unsigned int get_msgbuf(const int sockfd, char **buf) {
-    unsigned int sndbuflen;
-    socklen_t sz = sizeof sndbuflen;
-    if (getsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, (void *) &sndbuflen, &sz) == -1) {
-        sndbuflen = 4096;
+static char getchar_from_sock(int sockfd) {
+    static char buf[1024];
+    static size_t buf_i = 0;
+    /* Number of contiguous data in buf 0-offset */
+    static size_t size = 0;
+    if (buf_i == size) {
+        size = recv(sockfd, buf, sizeof buf, 0);
+        buf_i = 0;
+        if (size == 0) {
+            loginfo("user-server PI connection closed by server");
+            puts("Connection closed by server");
+            exit(EXIT_SUCCESS);
+        } else if (size == -1) {
+            perror(FTPC_EXE_NAME": Error while reading socket");
+            logerr("Error while reading data from user-PI socket");
+            exit(EXIT_FAILURE);
+        }
     }
-    *buf = (char *) calloc(sndbuflen, sizeof(char));
-    if (!*buf) {
-        logerr("Failed to allocate memory for msgbuf");
-        longjmp(err_jmp_buf, FATAL_ERROR);
-    }
-    return sndbuflen;
+    return buf[buf_i++];
 }
 
-void ftp_USER(int sockfd, const char *username) {
-    char *msg = NULL;
-    unsigned int bufsize = get_msgbuf(sockfd, &msg);
-    if (strlen(username) + 7 > bufsize) {
-        logerr("Username is too long");
-        longjmp(err_jmp_buf, ILLEGAL_ARG);
-    }
-    sprintf(msg, "USER %s\r\n", username);
-    send(sockfd, msg, strlen(msg), 0);
-    free(msg);
+static void parse_multi_line_reply(struct vector *vec, int sockfd) {
+    /* TODO Implement parsing multi-line replies */
+    logerr("Multi-line replies not yet implemented");
+    fputs("Multi-line replies not yet implemented\n", stderr);
+    exit(EXIT_FAILURE);
 }
 
-void ftp_PASS(int sockfd, const char *password) {
-    char *msg = NULL;
-    unsigned int bufsize = get_msgbuf(sockfd, &msg);
-    if (strlen(password) + 7 > bufsize) {
-        logerr("Password is too long");
-        longjmp(err_jmp_buf, ILLEGAL_ARG);
+static void parse_single_line_reply(struct vector *reply_msg, int sockfd) {
+    char ch;
+    while (true) {
+        ch = getchar_from_sock(sockfd);
+        if (ch == '\n' && reply_msg->arr[reply_msg->size-1] == '\r') {
+            /* We've found "\r\n"! Replace '\r' with '\0' */
+            reply_msg->size--;
+            vector_append(reply_msg, '\0');
+            return;
+        }
+        vector_append(reply_msg, ch);
     }
-    sprintf(msg, "PASS %s\r\n", password);
-    send(sockfd, msg, strlen(msg), 0);
-    free(msg);
+}
+
+enum reply_code wait_for_reply(const int sockfd) {
+    char reply_code_buf[4];
+    reply_code_buf[3] = '\0';
+    struct vector reply_msg;
+    vector_create(&reply_msg, 64, 2);
+
+    /* Get first 3 characters to get reply code */
+    for (int i = 0; i < 3; i++) {
+        reply_code_buf[i] = getchar_from_sock(sockfd);
+    }
+    enum reply_code code = atoi(reply_code_buf);
+
+    if (getchar_from_sock(sockfd) == '-') {
+        parse_multi_line_reply(&reply_msg, sockfd);
+    } else {
+        parse_single_line_reply(&reply_msg, sockfd);
+    }
+    loginfo("Received: %u %s", code, reply_msg.arr);
+    vector_free(&reply_msg);
+    return code;
+}
+
+enum reply_code ftp_USER(int sockfd, const char *username) {
+    struct vector msg;
+    vector_create(&msg, 64, 2);
+    vector_append_str(&msg, "USER ");
+    vector_append_str(&msg, username);
+    vector_append_str(&msg, "\r\n");
+    send(sockfd, msg.arr, msg.size, 0);
+    vector_free(&msg);
+    return wait_for_reply(sockfd);
+}
+
+enum reply_code ftp_PASS(int sockfd, const char *password) {
+    struct vector msg;
+    vector_create(&msg, 64, 2);
+    vector_append_str(&msg, "PASS ");
+    vector_append_str(&msg, password);
+    vector_append_str(&msg, "\r\n");
+    send(sockfd, msg.arr, msg.size, 0);
+    vector_free(&msg);
+    return wait_for_reply(sockfd);
 }
