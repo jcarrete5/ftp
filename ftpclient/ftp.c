@@ -106,6 +106,7 @@ enum reply_code ftp_USER(int sockfd, const char *username) {
     vector_create(&msg, 64, 2);
     vector_append_str(&msg, "USER ");
     vector_append_str(&msg, username);
+    loginfo("Sent: %s", msg);
     vector_append_str(&msg, "\r\n");
     send(sockfd, msg.arr, msg.size, 0);
     vector_free(&msg);
@@ -118,6 +119,7 @@ enum reply_code ftp_PASS(int sockfd, const char *password) {
     vector_create(&msg, 64, 2);
     vector_append_str(&msg, "PASS ");
     vector_append_str(&msg, password);
+    loginfo("Sent: %s", msg);
     vector_append_str(&msg, "\r\n");
     send(sockfd, msg.arr, msg.size, 0);
     vector_free(&msg);
