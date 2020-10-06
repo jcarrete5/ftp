@@ -23,6 +23,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #include "repl.h"
 #include "log.h"
@@ -147,6 +148,10 @@ static void init_conn(struct addrinfo *const addrlist) {
     exit(EXIT_FAILURE);
 }
 
+static void handle_sigint(int sig) {
+    exit(EXIT_SUCCESS);
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         fputs(FTPC_EXE_NAME": Not enough arguments\n", stderr);
@@ -159,6 +164,11 @@ int main(int argc, char *argv[]) {
     FILE *const logfile = valid_logfile(logfilename);
     /* logfile is closed in logging subsystem on exit */
     loginit(logfile);
+    struct sigaction action = {0};
+    action.sa_handler = handle_sigint;
+    if (sigaction(SIGINT, &action, NULL)) {
+        logwarn("Error setting signal handler for SIGINT");
+    }
     struct addrinfo *addrlist;
     resolve_domain(hostname, &addrlist);
     init_conn(addrlist);
