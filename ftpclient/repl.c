@@ -24,8 +24,6 @@
 /* Socket file descriptor for the user-PI. */
 static int sockpi;
 
-static const size_t MIN_STR_BUFFER_SIZE = (size_t) 1024;
-
 /* Read user input from stdin into the vector. */
 void get_input_str(struct vector *str) {
     int ch;
@@ -64,12 +62,8 @@ static enum reply_code login_with_credentials(void) {
     return reply;
 }
 
-/* Start the REPL for the user-PI. */
-void repl(const int sockfd) {
-    sockpi = sockfd;
-    if (atexit(cleanup)) {
-        logwarn("Socket for user-PI will not be cleaned up on exit");
-    }
+/* Wait for the server to be ready. */
+static void wait_for_server(void) {
     enum reply_code reply;
     do {
         reply = wait_for_reply(sockpi);
@@ -79,6 +73,16 @@ void repl(const int sockfd) {
         }
     } while (reply != FTP_SERVER_READY);
     puts("Server is ready");
+}
+
+/* Start the REPL for the user-PI. */
+void repl(const int sockfd) {
+    sockpi = sockfd;
+    if (atexit(cleanup)) {
+        logwarn("Socket for user-PI will not be cleaned up on exit");
+    }
+    wait_for_server();
+    enum reply_code reply;
     do {
         reply = login_with_credentials();
         if (!ftp_pos_completion(reply)) {

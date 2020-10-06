@@ -20,9 +20,6 @@
 /* Check if reply code x is a perminent negative reply. */
 #define ftp_perm_neg(x) ((x) >= 500 && (x) < 600)
 
-#define FATAL_ERROR -1
-#define ILLEGAL_ARG -2
-
 /* FTP server reply codes. */
 enum reply_code {
     FTP_SERVER_BUSY = 120,

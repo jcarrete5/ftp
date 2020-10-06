@@ -31,7 +31,8 @@
 
 /*
  * **Not thread-safe**
- * Get the next character from sockfd.
+ * Get the next character from sockfd. Will terminate the application if the
+ * socket is closed or there is a communication error on the between the PI.
  */
 static char getchar_from_sock(int sockfd) {
     static char buf[1024];
@@ -54,6 +55,7 @@ static char getchar_from_sock(int sockfd) {
     return buf[buf_i++];
 }
 
+/* Parse multi-line reply from FTP Server. */
 static void parse_multi_line_reply(struct vector *vec, int sockfd) {
     /* TODO Implement parsing multi-line replies */
     logerr("Multi-line replies not yet implemented");
@@ -61,6 +63,7 @@ static void parse_multi_line_reply(struct vector *vec, int sockfd) {
     exit(EXIT_FAILURE);
 }
 
+/* Parse single-line reply from FTP Server. */
 static void parse_single_line_reply(struct vector *reply_msg, int sockfd) {
     char ch;
     while (true) {
@@ -75,18 +78,18 @@ static void parse_single_line_reply(struct vector *reply_msg, int sockfd) {
     }
 }
 
+/* Wait for a reply from the server and return the reply code. */
 enum reply_code wait_for_reply(const int sockfd) {
     char reply_code_buf[4];
     reply_code_buf[3] = '\0';
     struct vector reply_msg;
     vector_create(&reply_msg, 64, 2);
-
     /* Get first 3 characters to get reply code */
     for (int i = 0; i < 3; i++) {
         reply_code_buf[i] = getchar_from_sock(sockfd);
     }
     enum reply_code code = atoi(reply_code_buf);
-
+    /* Parse reply text */
     if (getchar_from_sock(sockfd) == '-') {
         parse_multi_line_reply(&reply_msg, sockfd);
     } else {
@@ -97,6 +100,7 @@ enum reply_code wait_for_reply(const int sockfd) {
     return code;
 }
 
+/* Send a USER request and await a reply. */
 enum reply_code ftp_USER(int sockfd, const char *username) {
     struct vector msg;
     vector_create(&msg, 64, 2);
@@ -108,6 +112,7 @@ enum reply_code ftp_USER(int sockfd, const char *username) {
     return wait_for_reply(sockfd);
 }
 
+/* Send a PASS request and await a reply. */
 enum reply_code ftp_PASS(int sockfd, const char *password) {
     struct vector msg;
     vector_create(&msg, 64, 2);

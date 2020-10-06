@@ -148,10 +148,12 @@ static void init_conn(struct addrinfo *const addrlist) {
     exit(EXIT_FAILURE);
 }
 
+/* SIGINT handler. */
 static void handle_sigint(int sig) {
     exit(EXIT_SUCCESS);
 }
 
+/* Main entry point for the application. */
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         fputs(FTPC_EXE_NAME": Not enough arguments\n", stderr);
@@ -164,6 +166,7 @@ int main(int argc, char *argv[]) {
     FILE *const logfile = valid_logfile(logfilename);
     /* logfile is closed in logging subsystem on exit */
     loginit(logfile);
+    /* Handle SIGINT */
     struct sigaction action = {0};
     action.sa_handler = handle_sigint;
     if (sigaction(SIGINT, &action, NULL)) {

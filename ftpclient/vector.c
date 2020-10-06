@@ -15,6 +15,7 @@
 #include "vector.h"
 #include "log.h"
 
+/* Initialize a given vector with the appropriate arguments. */
 void vector_create(struct vector *vec, const size_t init_cap, const double scale) {
     assert(vec);
     if (vec) {
@@ -30,6 +31,7 @@ void vector_create(struct vector *vec, const size_t init_cap, const double scale
     }
 }
 
+/* Append ch to a vector. */
 void vector_append(struct vector *vec, const char ch) {
     assert(vec);
     if (vec->size == vec->capacity) {
@@ -44,6 +46,7 @@ void vector_append(struct vector *vec, const char ch) {
     vec->arr[(vec->size)++] = ch;
 }
 
+/* Append a string str to a vector. */
 void vector_append_str(struct vector *vec, const char *str) {
     assert(vec);
     for (const char *p = str; *p; p++) {
@@ -51,6 +54,7 @@ void vector_append_str(struct vector *vec, const char *str) {
     }
 }
 
+/* Free dynamically allocated data used by the vector. */
 void vector_free(struct vector *vec) {
     assert(vec);
     free(vec->arr);

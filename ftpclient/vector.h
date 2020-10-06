@@ -16,6 +16,7 @@ struct vector {
     size_t capacity;
     /* Number of elements in this vector. */
     size_t size;
+    /* Factor at which the array grows when resized. */
     double scale;
     char *arr;
 };
