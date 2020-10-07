@@ -15,6 +15,7 @@
 #include <setjmp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <regex.h>
 #include <errno.h>
 #include <string.h>
 
@@ -56,11 +57,31 @@ static char getchar_from_sock(int sockfd) {
 }
 
 /* Parse multi-line reply from FTP Server. */
-static void parse_multi_line_reply(struct vector *vec, int sockfd) {
-    /* TODO Implement parsing multi-line replies */
-    logerr("Multi-line replies not yet implemented");
-    fputs("Multi-line replies not yet implemented\n", stderr);
-    exit(EXIT_FAILURE);
+static void parse_multi_line_reply(struct vector *reply_msg, int sockfd, enum reply_code code) {
+    regex_t pattern_buf;
+    char pattern[64];  /* Generous considering code will only be 3 characters */
+    sprintf(pattern, "\n%d .*\r$", code);
+    if (regcomp(&pattern_buf, pattern, REG_EXTENDED | REG_NOSUB)) {
+        fputs(FTPC_EXE_NAME": Invalid regex", stderr);
+        exit(EXIT_FAILURE);
+    }
+    char ch;
+    while (true) {
+        ch = getchar_from_sock(sockfd);
+        if (ch == '\n') {
+            /* Check buffered message for the appropriate end sequence */
+            vector_append(reply_msg, '\0');
+            if (!regexec(&pattern_buf, reply_msg->arr, 0, NULL, 0)) {
+                /* We've found the end sequence; replace '\r' with '\0' */
+                (reply_msg->size) -= 2;
+                vector_append(reply_msg, '\0');
+                break;
+            }
+            (reply_msg->size)--;
+        }
+        vector_append(reply_msg, ch);
+    }
+    regfree(&pattern_buf);
 }
 
 /* Parse single-line reply from FTP Server. */
@@ -72,7 +93,7 @@ static void parse_single_line_reply(struct vector *reply_msg, int sockfd) {
             /* We've found "\r\n"! Replace '\r' with '\0' */
             reply_msg->size--;
             vector_append(reply_msg, '\0');
-            return;
+            break;
         }
         vector_append(reply_msg, ch);
     }
@@ -91,7 +112,7 @@ enum reply_code wait_for_reply(const int sockfd) {
     enum reply_code code = atoi(reply_code_buf);
     /* Parse reply text */
     if (getchar_from_sock(sockfd) == '-') {
-        parse_multi_line_reply(&reply_msg, sockfd);
+        parse_multi_line_reply(&reply_msg, sockfd, code);
     } else {
         parse_single_line_reply(&reply_msg, sockfd);
     }
