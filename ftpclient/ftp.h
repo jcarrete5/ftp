@@ -20,6 +20,8 @@
 /* Check if reply code x is a perminent negative reply. */
 #define ftp_perm_neg(x) ((x) >= 500 && (x) < 600)
 
+#include "vector.h"
+
 /* FTP server reply codes. */
 enum reply_code {
     FTP_SERVER_BUSY = 120,
@@ -34,8 +36,10 @@ enum reply_code {
     FTP_USER_LOGIN_FAIL = 530,
 };
 
-enum reply_code wait_for_reply(const int sockfd);
+enum reply_code wait_for_reply(const int sockfd, struct vector *out_msg);
 enum reply_code ftp_USER(int sockfd, const char *username);
 enum reply_code ftp_PASS(int sockfd, const char *password);
+enum reply_code ftp_QUIT(int sockfd);
+enum reply_code ftp_HELP(int sockfd, const char *cmd, struct vector *reply_msg);
 
 #endif /* FTPC_FTP_H */

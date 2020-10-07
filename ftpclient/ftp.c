@@ -25,9 +25,20 @@
 #include "vector.h"
 
 /*
- * TODO
- * MUST implement USER, PASS, CWD, QUIT, PASV, EPSV, PORT, EPRT, RETR, STOR,
- * PWD, SYST, LIST, and HELP commands
+ * --USER--
+ * --PASS--
+ * CWD
+ * --QUIT--
+ * PASV
+ * EPSV
+ * PORT
+ * EPRT
+ * RETR
+ * STOR
+ * PWD
+ * SYST
+ * LIST
+ * HELP
  */
 
 /*
@@ -99,8 +110,11 @@ static void parse_single_line_reply(struct vector *reply_msg, int sockfd) {
     }
 }
 
-/* Wait for a reply from the server and return the reply code. */
-enum reply_code wait_for_reply(const int sockfd) {
+/*
+ * Wait for a reply from the server and return the reply code. Optionally, a
+ * struct vector may be passed in to get the reply message text.
+ */
+enum reply_code wait_for_reply(const int sockfd, struct vector *out_msg) {
     char reply_code_buf[4];
     reply_code_buf[3] = '\0';
     struct vector reply_msg;
@@ -117,6 +131,10 @@ enum reply_code wait_for_reply(const int sockfd) {
         parse_single_line_reply(&reply_msg, sockfd);
     }
     loginfo("Received: %u %s", code, reply_msg.arr);
+    if (out_msg) {
+        vector_append_str(out_msg, reply_msg.arr);
+        vector_append(out_msg, '\0');
+    }
     vector_free(&reply_msg);
     return code;
 }
@@ -131,7 +149,7 @@ enum reply_code ftp_USER(int sockfd, const char *username) {
     vector_append_str(&msg, "\r\n");
     send(sockfd, msg.arr, msg.size, 0);
     vector_free(&msg);
-    return wait_for_reply(sockfd);
+    return wait_for_reply(sockfd, NULL);
 }
 
 /* Send a PASS request and await a reply. */
@@ -144,5 +162,30 @@ enum reply_code ftp_PASS(int sockfd, const char *password) {
     vector_append_str(&msg, "\r\n");
     send(sockfd, msg.arr, msg.size, 0);
     vector_free(&msg);
-    return wait_for_reply(sockfd);
+    return wait_for_reply(sockfd, NULL);
+}
+
+/* Send a QUIT request and await a reply. */
+enum reply_code ftp_QUIT(int sockfd) {
+    char msg[] = "QUIT\r\n";
+    loginfo("Sent: QUIT");
+    send(sockfd, msg, strlen(msg), 0);
+    return wait_for_reply(sockfd, NULL);
+}
+
+/* Send a HELP request and await a reply. */
+enum reply_code ftp_HELP(int sockfd, const char *cmd, struct vector *reply_msg) {
+    struct vector msg;
+    vector_create(&msg, 64, 2);
+    if (cmd) {
+        vector_append_str(&msg, "HELP ");
+        vector_append_str(&msg, cmd);
+    } else {
+        vector_append_str(&msg, "HELP");
+    }
+    loginfo("Sent: %s", msg);
+    vector_append_str(&msg, "\r\n");
+    send(sockfd, msg.arr, msg.size, 0);
+    vector_free(&msg);
+    enum reply_code code = wait_for_reply(sockfd, reply_msg);
 }

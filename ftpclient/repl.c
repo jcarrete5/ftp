@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "repl.h"
 #include "log.h"
@@ -23,6 +24,7 @@
 
 /* Socket file descriptor for the user-PI. */
 static int sockpi;
+static bool repl_running = true;
 
 /* Read user input from stdin into the vector. */
 void get_input_str(struct vector *str) {
@@ -66,13 +68,33 @@ static enum reply_code login_with_credentials(void) {
 static void wait_for_server(void) {
     enum reply_code reply;
     do {
-        reply = wait_for_reply(sockpi);
+        reply = wait_for_reply(sockpi, NULL);
         if (reply == FTP_SERVER_NA) {
             puts("Server not currently available");
             return;
         }
     } while (reply != FTP_SERVER_READY);
     puts("Server is ready");
+}
+
+/* Handle quit repl command. */
+void handle_quit(void) {
+    repl_running = false;
+    enum reply_code reply = ftp_QUIT(sockpi);
+    /* TODO handle reply code */
+}
+
+/* Handle help repl command. */
+void handle_help(const char *cmd) {
+    struct vector reply_msg;
+    vector_create(&reply_msg, 128, 2);
+    enum reply_code reply = ftp_HELP(sockpi, cmd, &reply_msg);
+    if (ftp_pos_completion(reply)) {
+        puts(reply_msg.arr);
+    } else {
+        /* TODO Handle error replies */
+    }
+    vector_free(&reply_msg);
 }
 
 /* Start the REPL for the user-PI. */
@@ -89,11 +111,22 @@ void repl(const int sockfd) {
             puts("Invalid login credentials");
         }
     } while (!ftp_pos_completion(reply));
+    /* Parse user input and execute associated handler function */
     struct vector in;
     vector_create(&in, 64, 2);
-    while (true) {
+    while (repl_running) {
         printf("> ");
         get_input_str(&in);
+        const char *token = strtok(in.arr, " \t");
+        if (strcmp(token, "quit") == 0) {
+            handle_quit();
+        } else if (strcmp(token, "help") == 0) {
+            token = strtok(NULL, " \t");
+            handle_help(token);
+        } else {
+            puts("Unknown command");
+        }
+        in.size = 0;
     }
     vector_free(&in);
 }
