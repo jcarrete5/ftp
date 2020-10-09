@@ -78,17 +78,43 @@ static void wait_for_server(void) {
 }
 
 /* Handle quit repl command. */
-void handle_quit(void) {
+static void handle_quit(void) {
     repl_running = false;
     enum reply_code reply = ftp_QUIT(sockpi);
     /* TODO handle reply code */
 }
 
 /* Handle help repl command. */
-void handle_help(const char *cmd) {
+static void handle_help(const char *cmd) {
     struct vector reply_msg;
     vector_create(&reply_msg, 128, 2);
     enum reply_code reply = ftp_HELP(sockpi, cmd, &reply_msg);
+    if (ftp_pos_completion(reply)) {
+        puts(reply_msg.arr);
+    } else {
+        /* TODO Handle error replies */
+    }
+    vector_free(&reply_msg);
+}
+
+/* Handle pwd repl command. */
+static void handle_pwd(void) {
+    struct vector reply_msg;
+    vector_create(&reply_msg, 128, 2);
+    enum reply_code reply = ftp_PWD(sockpi, &reply_msg);
+    if (ftp_pos_completion(reply)) {
+        puts(reply_msg.arr);
+    } else {
+        /* TODO Handle error replies */
+    }
+    vector_free(&reply_msg);
+}
+
+/* Handle system repl command. */
+static void handle_system(void) {
+    struct vector reply_msg;
+    vector_create(&reply_msg, 128, 2);
+    enum reply_code reply = ftp_SYST(sockpi, &reply_msg);
     if (ftp_pos_completion(reply)) {
         puts(reply_msg.arr);
     } else {
@@ -123,6 +149,10 @@ void repl(const int sockfd) {
         } else if (strcmp(token, "help") == 0) {
             token = strtok(NULL, " \t");
             handle_help(token);
+        } else if (strcmp(token, "pwd") == 0) {
+            handle_pwd();
+        } else if (strcmp(token, "system") == 0) {
+            handle_system();
         } else {
             puts("Unknown command");
         }

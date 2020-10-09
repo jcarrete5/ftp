@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <stdbool.h>
 #include <setjmp.h>
 #include <sys/types.h>
@@ -35,10 +36,10 @@
  * EPRT
  * RETR
  * STOR
- * PWD
- * SYST
+ * --PWD--
+ * --SYST--
  * LIST
- * HELP
+ * --HELP--
  */
 
 /*
@@ -188,4 +189,20 @@ enum reply_code ftp_HELP(int sockfd, const char *cmd, struct vector *reply_msg) 
     send(sockfd, msg.arr, msg.size, 0);
     vector_free(&msg);
     enum reply_code code = wait_for_reply(sockfd, reply_msg);
+}
+
+enum reply_code ftp_PWD(int sockfd, struct vector *reply_msg) {
+    assert(reply_msg);
+    char msg[] = "PWD\r\n";
+    loginfo("Sent: PWD");
+    send(sockfd, msg, strlen(msg), 0);
+    return wait_for_reply(sockfd, reply_msg);
+}
+
+enum reply_code ftp_SYST(int sockfd, struct vector *reply_msg) {
+    assert(reply_msg);
+    char msg[] = "SYST\r\n";
+    loginfo("Sent: SYST");
+    send(sockfd, msg, strlen(msg), 0);
+    return wait_for_reply(sockfd, reply_msg);
 }
