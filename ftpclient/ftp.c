@@ -188,9 +188,10 @@ enum reply_code ftp_HELP(int sockfd, const char *cmd, struct vector *reply_msg) 
     vector_append_str(&msg, "\r\n");
     send(sockfd, msg.arr, msg.size, 0);
     vector_free(&msg);
-    enum reply_code code = wait_for_reply(sockfd, reply_msg);
+    return wait_for_reply(sockfd, reply_msg);
 }
 
+/* Send a PWD request and await a reply. */
 enum reply_code ftp_PWD(int sockfd, struct vector *reply_msg) {
     assert(reply_msg);
     char msg[] = "PWD\r\n";
@@ -199,6 +200,7 @@ enum reply_code ftp_PWD(int sockfd, struct vector *reply_msg) {
     return wait_for_reply(sockfd, reply_msg);
 }
 
+/* Send a SYST request and await a reply. */
 enum reply_code ftp_SYST(int sockfd, struct vector *reply_msg) {
     assert(reply_msg);
     char msg[] = "SYST\r\n";

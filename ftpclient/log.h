@@ -11,7 +11,8 @@
 
 #include <stdio.h>
 
-/* Initialize the logging subsystem with a logfile to append to.
+/*
+ * Initialize the logging subsystem with a logfile to append to.
  *
  * Precondition: logfile must not be NULL
  */
