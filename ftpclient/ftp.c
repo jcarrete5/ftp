@@ -11,6 +11,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <assert.h>
 #include <stdbool.h>
 #include <setjmp.h>
@@ -24,23 +26,6 @@
 #include "log.h"
 #include "repl.h"
 #include "vector.h"
-
-/*
- * --USER--
- * --PASS--
- * --CWD--
- * --QUIT--
- * PASV
- * EPSV
- * PORT
- * EPRT
- * RETR
- * STOR
- * --PWD--
- * --SYST--
- * --LIST--
- * --HELP--
- */
 
 /*
  * **Not thread-safe**
@@ -246,8 +231,108 @@ enum reply_code ftp_CWD(int sockfd, const char *path) {
     vector_create(&msg, 64, 2);
     vector_append_str(&msg, "CWD ");
     vector_append_str(&msg, path);
-    loginfo("Sent: %s", msg);
+    vector_append(&msg, '\0');
+    loginfo("Sent: %s", msg.arr);
+    msg.size--;
     vector_append_str(&msg, "\r\n");
+    send(sockfd, msg.arr, msg.size, 0);
+    vector_free(&msg);
+    return wait_for_reply(sockfd, NULL);
+}
+
+/* Send a PORT request and await a reply. */
+enum reply_code ftp_PORT(int sockfd, const char *ipstr, uint16_t port) {
+    char ipstr_copy[strlen(ipstr) + 1];
+    strcpy(ipstr_copy, ipstr);
+    struct vector msg;
+    vector_create(&msg, 128, 2);
+    vector_append_str(&msg, "PORT ");
+    char *token = strtok(ipstr_copy, ".");
+    for (; token; token = strtok(NULL, ".")) {
+        vector_append_str(&msg, token);
+        vector_append(&msg, ',');
+    }
+    char port_str[16];
+    sprintf(port_str, "%"PRIu16",%"PRIu16, port & (uint16_t)0xff00, port & (uint16_t)0x00ff);
+    vector_append_str(&msg, port_str);
+    vector_append(&msg, '\0');
+    loginfo("Sent: %s", msg.arr);
+    msg.size--;
+    vector_append_str(&msg, "\r\n");
+    send(sockfd, msg.arr, msg.size, 0);
+    vector_free(&msg);
+    return wait_for_reply(sockfd, NULL);
+}
+
+/* Send a PASV request and await a reply. */
+enum reply_code ftp_PASV(int sockfd) {
+    char msg[] = "PASV\r\n";
+    loginfo("Sent: PASV");
+    send(sockfd, msg, strlen(msg), 0);
+    return wait_for_reply(sockfd, NULL);
+}
+
+/* Send a RETR request and await a reply. path must not be NULL. */
+enum reply_code ftp_RETR(int sockfd, const char *path) {
+    struct vector msg;
+    vector_create(&msg, 64, 2);
+    vector_append_str(&msg, "RETR ");
+    vector_append_str(&msg, path);
+    vector_append(&msg, '\0');
+    loginfo("Sent: %s", msg.arr);
+    msg.size--;
+    vector_append_str(&msg, "\r\n");
+    send(sockfd, msg.arr, msg.size, 0);
+    vector_free(&msg);
+    return wait_for_reply(sockfd, NULL);
+}
+
+/* Send a STOR request and await a reply. path must not be NULL. */
+enum reply_code ftp_STOR(int sockfd, const char *path) {
+    struct vector msg;
+    vector_create(&msg, 64, 2);
+    vector_append_str(&msg, "STOR ");
+    vector_append_str(&msg, path);
+    vector_append(&msg, '\0');
+    loginfo("Sent: %s", msg.arr);
+    msg.size--;
+    vector_append_str(&msg, "\r\n");
+    send(sockfd, msg.arr, msg.size, 0);
+    vector_free(&msg);
+    return wait_for_reply(sockfd, NULL);
+}
+
+enum reply_code ftp_EPRT(int sockfd, int family, const char *ipstr, const uint16_t port) {
+    struct vector msg;
+    vector_create(&msg, 128, 2);
+    char family_str[2], port_str[6];
+    sprintf(family_str, "%d", family);
+    sprintf(port_str, "%"PRIu16, port);
+    vector_append_str(&msg, "EPRT |");
+    vector_append_str(&msg, family_str);
+    vector_append(&msg, '|');
+    vector_append_str(&msg, ipstr);
+    vector_append(&msg, '|');
+    vector_append_str(&msg, port_str);
+    vector_append(&msg, '|');
+    vector_append(&msg, '\0');
+    loginfo("Sent: %s", msg.arr);
+    msg.size--;
+    send(sockfd, msg.arr, msg.size, 0);
+    vector_free(&msg);
+    return wait_for_reply(sockfd, NULL);
+}
+
+enum reply_code ftp_EPSV(int sockfd, const uint16_t port) {
+    struct vector msg;
+    vector_create(&msg, 64, 2);
+    char port_str[6];
+    sprintf(port_str, "%"PRIu16, port);
+    vector_append_str(&msg, "EPSV ");
+    vector_append_str(&msg, port_str);
+    vector_append(&msg, '\0');
+    loginfo("Sent: %s", msg.arr);
+    msg.size--;
     send(sockfd, msg.arr, msg.size, 0);
     vector_free(&msg);
     return wait_for_reply(sockfd, NULL);

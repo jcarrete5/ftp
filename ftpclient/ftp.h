@@ -20,6 +20,10 @@
 /* Check if reply code x is a perminent negative reply. */
 #define ftp_perm_neg(x) ((x) >= 500 && (x) < 600)
 
+#define FTP_AF_INET 1
+#define FTP_AF_INET6 2
+
+#include <stdint.h>
 #include "vector.h"
 
 /* FTP server reply codes. */
@@ -50,5 +54,11 @@ enum reply_code ftp_PWD(int sockfd, struct vector *reply_msg);
 enum reply_code ftp_SYST(int sockfd, struct vector *reply_msg);
 enum reply_code ftp_LIST(int sockfd, const char *path, struct vector *reply_msg);
 enum reply_code ftp_CWD(int sockfd, const char *path);
+enum reply_code ftp_PORT(int sockfd, const char *ipstr, uint16_t port);
+enum reply_code ftp_PASV(int sockfd);
+enum reply_code ftp_RETR(int sockfd, const char *path);
+enum reply_code ftp_STOR(int sockfd, const char *path);
+enum reply_code ftp_EPRT(int sockfd, int family, const char *ipstr, const uint16_t port);
+enum reply_code ftp_EPSV(int sockfd, const uint16_t port);
 
 #endif /* FTPC_FTP_H */
