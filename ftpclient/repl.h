@@ -10,6 +10,6 @@
 #define FTPC_REPL_H
 
 /* Start the REPL for the user-PI. */
-void repl(int sockfd);
+void repl(int sockfd, const char *ipstr);
 
 #endif  /* FTPC_REPL_H */

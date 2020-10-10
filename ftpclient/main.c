@@ -135,8 +135,7 @@ static void init_conn(struct addrinfo *const addrlist) {
             loginfo("Connected to %s", ipstr);
             printf("Connected to %s\n", ipstr);
             freeaddrinfo(addrlist);
-            /* Socket will be closed on exit in the repl */
-            repl(sock);
+            repl(sock, ipstr);
             return;
         } else {
             logwarn("Failed to connect to %s; trying another address", ipstr);

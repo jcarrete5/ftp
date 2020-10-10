@@ -129,7 +129,7 @@ static void handle_system(void) {
 }
 
 /* Start the REPL for the user-PI. */
-void repl(const int sockfd) {
+void repl(const int sockfd, const char *ipstr) {
     sockpi = sockfd;
     if (atexit(cleanup)) {
         logwarn("Socket for user-PI will not be cleaned up on exit");
