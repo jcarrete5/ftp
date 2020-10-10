@@ -37,7 +37,6 @@ static void get_input_str(struct vector *str) {
         puts("stdin closed. Goodbye");
         exit(EXIT_SUCCESS);
     }
-    return 0;
 }
 
 /* Cleanup resources used by the repl on exit. */
@@ -46,7 +45,10 @@ static void cleanup(void) {
     close(sockpi);
 }
 
-/* Go through authentication sequence with the remote server-PI. */
+/*
+ * Go through authentication sequence with the remote server-PI. Returns the
+ * reply code.
+ */
 static enum reply_code login_with_credentials(void) {
     struct vector str;
     vector_create(&str, 64, 2);
@@ -59,11 +61,15 @@ static enum reply_code login_with_credentials(void) {
         puts("Username OK");
         printf("Password: ");
         str.size = 0;  /* Reset array */
-        get_input_str(&str);
+        get_input_str(&str);  /* TODO Don't echo the password */
         reply = ftp_PASS(sockpi, str.arr);
         if (ftp_pos_completion(reply)) {
             puts("Password OK");
-        } /* We don't need to implement ACCT as per requirements */
+        } else if (ftp_pos_intermediate(reply)) {
+            /* We don't support ACCT as per requirements */
+            puts("ACCT not supported by this client. Cannot complete auth");
+            exit(EXIT_SUCCESS);
+        }
     }
     vector_free(&str);
     return reply;
@@ -74,10 +80,6 @@ static void wait_for_server(void) {
     enum reply_code reply;
     do {
         reply = wait_for_reply(sockpi, NULL);
-        if (reply == FTP_SERVER_NA) {
-            puts("Server not currently available");
-            exit(EXIT_SUCCESS);
-        }
     } while (reply != FTP_SERVER_READY);
     puts("Server is ready");
 }
@@ -86,7 +88,7 @@ static void wait_for_server(void) {
 static void handle_quit(void) {
     repl_running = false;
     enum reply_code reply = ftp_QUIT(sockpi);
-    /* TODO handle reply code */
+    /* Reply is either 221 or 500; Ignoring since we are quitting anyway. */
 }
 
 /* Handle help repl command. */
@@ -96,8 +98,12 @@ static void handle_help(const char *cmd) {
     enum reply_code reply = ftp_HELP(sockpi, cmd, &reply_msg);
     if (ftp_pos_completion(reply)) {
         puts(reply_msg.arr);
+    } else if (reply == FTP_SYNTAX_ERR || reply == FTP_SYNTAX_ERR_ARGS) {
+        puts("Syntax error; check your command");
+    } else if (reply == FTP_CMD_NOT_IMPL) {
+        puts("Command not recognized by the server");
     } else {
-        /* TODO Handle error replies */
+        puts("Error executing command. See log");
     }
     vector_free(&reply_msg);
 }
@@ -110,7 +116,7 @@ static void handle_pwd(void) {
     if (ftp_pos_completion(reply)) {
         puts(reply_msg.arr);
     } else {
-        /* TODO Handle error replies */
+        puts("Error executing command. See log");
     }
     vector_free(&reply_msg);
 }
@@ -123,7 +129,7 @@ static void handle_system(void) {
     if (ftp_pos_completion(reply)) {
         puts(reply_msg.arr);
     } else {
-        /* TODO Handle error replies */
+        puts("Error executing command. See log");
     }
     vector_free(&reply_msg);
 }
@@ -133,10 +139,13 @@ static void handle_ls(const char *path) {
     struct vector reply_msg;
     vector_create(&reply_msg, 128, 2);
     enum reply_code reply = ftp_LIST(sockpi, path, &reply_msg);
-    if (ftp_pos_completion(reply)) {
+    while (ftp_pos_preliminary(reply)) {
+        reply = wait_for_reply(sockpi, &reply_msg);
+    }
+    if (ftp_pos_completion(reply) || ftp_trans_neg(reply)) {
         puts(reply_msg.arr);
     } else {
-        /* TODO Handle error replies */
+        puts("Error executing command. See log");
     }
     vector_free(&reply_msg);
 }
@@ -148,10 +157,8 @@ static void handle_cd(const char *path) {
         return;
     }
     enum reply_code reply = ftp_CWD(sockpi, path);
-    if (ftp_pos_completion(reply)) {
-        /* TODO print something maybe? */
-    } else {
-        /* TODO Handle error replies */
+    if (!ftp_pos_completion(reply)) {
+        puts("Failed to change working directory. See log");
     }
 }
 

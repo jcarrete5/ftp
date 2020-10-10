@@ -137,6 +137,12 @@ enum reply_code wait_for_reply(const int sockfd, struct vector *out_msg) {
         vector_append(out_msg, '\0');
     }
     vector_free(&reply_msg);
+    /* Handle FTP_SERVER_NA here since this should always mean the client
+       should quit */
+    if (code == FTP_SERVER_NA) {
+        puts("Server not available or is shutting down");
+        exit(EXIT_SUCCESS);
+    }
     return code;
 }
 
