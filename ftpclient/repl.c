@@ -76,7 +76,7 @@ static void wait_for_server(void) {
         reply = wait_for_reply(sockpi, NULL);
         if (reply == FTP_SERVER_NA) {
             puts("Server not currently available");
-            return;
+            exit(EXIT_SUCCESS);
         }
     } while (reply != FTP_SERVER_READY);
     puts("Server is ready");
