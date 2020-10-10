@@ -43,5 +43,7 @@ enum reply_code ftp_QUIT(int sockfd);
 enum reply_code ftp_HELP(int sockfd, const char *cmd, struct vector *reply_msg);
 enum reply_code ftp_PWD(int sockfd, struct vector *reply_msg);
 enum reply_code ftp_SYST(int sockfd, struct vector *reply_msg);
+enum reply_code ftp_LIST(int sockfd, const char *path, struct vector *reply_msg);
+enum reply_code ftp_CWD(int sockfd, const char *path);
 
 #endif /* FTPC_FTP_H */

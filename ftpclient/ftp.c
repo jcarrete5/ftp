@@ -28,7 +28,7 @@
 /*
  * --USER--
  * --PASS--
- * CWD
+ * --CWD--
  * --QUIT--
  * PASV
  * EPSV
@@ -38,7 +38,7 @@
  * STOR
  * --PWD--
  * --SYST--
- * LIST
+ * --LIST--
  * --HELP--
  */
 
@@ -207,4 +207,34 @@ enum reply_code ftp_SYST(int sockfd, struct vector *reply_msg) {
     loginfo("Sent: SYST");
     send(sockfd, msg, strlen(msg), 0);
     return wait_for_reply(sockfd, reply_msg);
+}
+
+/* Send a LIST request and await a reply. */
+enum reply_code ftp_LIST(int sockfd, const char *path, struct vector *reply_msg) {
+    struct vector msg;
+    vector_create(&msg, 64, 2);
+    if (path) {
+        vector_append_str(&msg, "LIST ");
+        vector_append_str(&msg, path);
+    } else {
+        vector_append_str(&msg, "LIST");
+    }
+    loginfo("Sent: %s", msg);
+    vector_append_str(&msg, "\r\n");
+    send(sockfd, msg.arr, msg.size, 0);
+    vector_free(&msg);
+    return wait_for_reply(sockfd, reply_msg);
+}
+
+/* Send a CWD request and await a reply. path must not be NULL. */
+enum reply_code ftp_CWD(int sockfd, const char *path) {
+    struct vector msg;
+    vector_create(&msg, 64, 2);
+    vector_append_str(&msg, "CWD ");
+    vector_append_str(&msg, path);
+    loginfo("Sent: %s", msg);
+    vector_append_str(&msg, "\r\n");
+    send(sockfd, msg.arr, msg.size, 0);
+    vector_free(&msg);
+    return wait_for_reply(sockfd, NULL);
 }

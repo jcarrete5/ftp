@@ -128,6 +128,33 @@ static void handle_system(void) {
     vector_free(&reply_msg);
 }
 
+/* Handle ls repl command. */
+static void handle_ls(const char *path) {
+    struct vector reply_msg;
+    vector_create(&reply_msg, 128, 2);
+    enum reply_code reply = ftp_LIST(sockpi, path, &reply_msg);
+    if (ftp_pos_completion(reply)) {
+        puts(reply_msg.arr);
+    } else {
+        /* TODO Handle error replies */
+    }
+    vector_free(&reply_msg);
+}
+
+/* Handle cd repl command. */
+static void handle_cd(const char *path) {
+    if (!path) {
+        puts("A path must be specified");
+        return;
+    }
+    enum reply_code reply = ftp_CWD(sockpi, path);
+    if (ftp_pos_completion(reply)) {
+        /* TODO print something maybe? */
+    } else {
+        /* TODO Handle error replies */
+    }
+}
+
 /* Start the REPL for the user-PI. */
 void repl(const int sockfd, const char *ipstr) {
     sockpi = sockfd;
@@ -158,6 +185,12 @@ void repl(const int sockfd, const char *ipstr) {
             handle_pwd();
         } else if (strcmp(token, "system") == 0) {
             handle_system();
+        } else if (strcmp(token, "ls") == 0) {
+            token = strtok(NULL, " \t");
+            handle_ls(token);
+        } else if (strcmp(token, "cd") == 0) {
+            token = strtok(NULL, " \t");
+            handle_cd(token);
         } else {
             puts("Unknown command");
         }
