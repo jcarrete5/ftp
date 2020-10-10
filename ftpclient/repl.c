@@ -27,15 +27,15 @@ static int sockpi;
 static bool repl_running = true;
 
 /* Read user input from stdin into the vector. Return 1 if EOF was reached. */
-static int get_input_str(struct vector *str) {
+static void get_input_str(struct vector *str) {
     int ch;
     while ((ch=getchar()) != EOF && ch != '\n') {
         vector_append(str, (char) ch);
     }
     vector_append(str, '\0');
     if (ch == EOF) {
-        repl_running = false;
-        return 1;
+        puts("stdin closed. Goodbye");
+        exit(EXIT_SUCCESS);
     }
     return 0;
 }
@@ -174,7 +174,7 @@ void repl(const int sockfd, const char *ipstr) {
     vector_create(&in, 64, 2);
     while (repl_running) {
         printf("> ");
-        if (get_input_str(&in)) break;
+        get_input_str(&in);
         const char *token = strtok(in.arr, " \t");
         if (strcmp(token, "quit") == 0) {
             handle_quit();
