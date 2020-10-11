@@ -35,6 +35,7 @@ static void get_input_str(struct vector *str) {
     vector_append(str, '\0');
     if (ch == EOF) {
         puts("stdin closed. Goodbye");
+        ftp_QUIT(sockpi);
         exit(EXIT_SUCCESS);
     }
 }
