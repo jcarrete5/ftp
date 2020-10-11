@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <time.h>
 #include <inttypes.h>
 #include <ctype.h>
 #include <string.h>
@@ -64,11 +65,13 @@ static bool addrtostr(struct addrinfo *info, char *dst) {
  * addresses are written into out. If the domain cannot be resolved, quit the
  * application and print an error message.
  */
-static void resolve_domain(const char *node, struct addrinfo **out) {
-    struct addrinfo hints = {};
+static void resolve_domain(const char *node, struct addrinfo **out, uint16_t port) {
+    struct addrinfo hints = {0};
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_socktype = SOCK_STREAM;
-    int err = getaddrinfo(node, "ftp", &hints, out);
+    char port_str[6];
+    sprintf(port_str, "%"PRIu16, port);
+    int err = getaddrinfo(node, port_str, &hints, out);
     if (err) {
         fprintf(stderr, FTPC_EXE_NAME": %s\n", gai_strerror(err));
         exit(EXIT_FAILURE);
@@ -125,9 +128,10 @@ static void init_conn(struct addrinfo *const addrlist) {
         char ipstr[INET6_ADDRSTRLEN];
         addrtostr(info, ipstr);
         const int sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
-        if (sock == 0) {
+        if (sock < 0) {
             perror(FTPC_EXE_NAME": Failed to create socket");
             logerr("Failed to create socket for %s", ipstr);
+            exit(EXIT_FAILURE);
         }
         loginfo("Trying %s", ipstr);
         if (connect(sock, info->ai_addr, info->ai_addrlen) == 0) {
@@ -172,7 +176,8 @@ int main(int argc, char *argv[]) {
         logwarn("Error setting signal handler for SIGINT");
     }
     struct addrinfo *addrlist;
-    resolve_domain(hostname, &addrlist);
+    resolve_domain(hostname, &addrlist, port);
+    srand(time(NULL));
     init_conn(addrlist);
     return EXIT_SUCCESS;
 }
