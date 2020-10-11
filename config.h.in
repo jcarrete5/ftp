@@ -1,4 +1,3 @@
 #define FTPC_VERSION "@cs472-ftpclient_VERSION@"
 #define FTPC_EXE_NAME "@EXE_NAME@"
 #define FTPC_DEFAULT_PORT 21
-#define FTPC_DEFAULT_DATA_PORT 20
