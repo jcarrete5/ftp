@@ -27,29 +27,42 @@
 #include "repl.h"
 #include "vector.h"
 
+static struct sockbuf pi_buf = {0};
+
 /*
- * **Not thread-safe**
- * Get the next character from sockfd. Will terminate the application if the
- * socket is closed or there is a communication error on the between the PI.
+ * Get a character from the socket file descriptor. buf is used to buffer any
+ * extraneous data between calls; It will be exhausted before calling recv(2)
+ * again. Returns 0 on EOF or -1 on error, otherwise, the character is returned.
  */
-static char getchar_from_sock(int sockfd) {
-    static char buf[1024];
-    static size_t buf_i = 0;
-    /* Number of contiguous data in buf 0-offset */
-    static size_t size = 0;
-    if (buf_i == size) {
-        size = recv(sockfd, buf, sizeof buf, 0);
-        buf_i = 0;
-        if (size == 0) {
-            loginfo("user-server PI connection closed by server");
-            puts("Connection closed by server");
-            exit(EXIT_SUCCESS);
-        } else if (size == -1) {
-            perror(FTPC_EXE_NAME": Error while reading socket");
-            logerr("Error while reading data from user-PI socket");
-            exit(EXIT_FAILURE);
+int getchar_from_sock(int sockfd, struct sockbuf *buf) {
+    assert(buf);
+    if (buf->i == buf->size) {
+        ssize_t read = recv(sockfd, buf->data, sizeof buf->data, 0);
+        if (read <= 0) {
+            /* Signal exceptional case */
+            return read;
         }
+        buf->i = 0;
+        buf->size = read;
     }
+    return buf->data[(buf->i)++];
+}
+
+/*
+ * Wrapper function for getting characters from the PI.
+ */
+static char pi_getchar(int sockfd) {
+    int ret = getchar_from_sock(sockfd, &pi_buf);
+    if (ret == 0) {
+        loginfo("user-server PI connection closed by server");
+        puts("Connection closed by server");
+        exit(EXIT_SUCCESS);
+    } else if (ret < -1) {
+        perror(FTPC_EXE_NAME": Error while reading socket");
+        logerr("Error while reading data from user-PI socket");
+        exit(EXIT_FAILURE);
+    }
+}
     return buf[buf_i++];
 }
 
@@ -64,7 +77,7 @@ static void parse_multi_line_reply(struct vector *reply_msg, int sockfd, enum re
     }
     char ch;
     while (true) {
-        ch = getchar_from_sock(sockfd);
+        ch = pi_getchar(sockfd);
         if (ch == '\n') {
             /* Check buffered message for the appropriate end sequence */
             vector_append(reply_msg, '\0');
@@ -85,7 +98,7 @@ static void parse_multi_line_reply(struct vector *reply_msg, int sockfd, enum re
 static void parse_single_line_reply(struct vector *reply_msg, int sockfd) {
     char ch;
     while (true) {
-        ch = getchar_from_sock(sockfd);
+        ch = pi_getchar(sockfd);
         if (ch == '\n' && reply_msg->arr[reply_msg->size-1] == '\r') {
             /* We've found "\r\n"! Replace '\r' with '\0' */
             reply_msg->size--;
@@ -107,11 +120,11 @@ enum reply_code wait_for_reply(const int sockfd, struct vector *out_msg) {
     vector_create(&reply_msg, 64, 2);
     /* Get first 3 characters to get reply code */
     for (int i = 0; i < 3; i++) {
-        reply_code_buf[i] = getchar_from_sock(sockfd);
+        reply_code_buf[i] = pi_getchar(sockfd);
     }
     enum reply_code code = atoi(reply_code_buf);
     /* Parse reply text */
-    if (getchar_from_sock(sockfd) == '-') {
+    if (pi_getchar(sockfd) == '-') {
         parse_multi_line_reply(&reply_msg, sockfd, code);
     } else {
         parse_single_line_reply(&reply_msg, sockfd);
