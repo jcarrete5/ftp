@@ -251,7 +251,9 @@ static void handle_cd(const char *path) {
         return;
     }
     enum reply_code reply = ftp_CWD(sockpi, path);
-    if (!ftp_pos_completion(reply)) {
+    if (ftp_pos_completion(reply)) {
+        puts("Directory change OK");
+    } else {
         puts("Failed to change working directory. See log");
     }
 }
