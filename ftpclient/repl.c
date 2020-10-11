@@ -41,8 +41,6 @@ static bool repl_running = true;
  * connections for data transfer).
  */
 static bool rpassive = false;
-static struct sockaddr_storage raddr;
-static socklen_t addrlen;
 
 /* Read user input from stdin into the vector. Return 1 if EOF was reached. */
 static void get_input_str(struct vector *str) {
@@ -65,7 +63,11 @@ static void cleanup(void) {
 }
 
 /* Set the socket address to connect to when the server is in passive mode. */
-static void set_remote_sockaddr_in(const char *msg) {
+static void set_remote_sockaddr
+(const char *msg, struct sockaddr_storage *addr, socklen_t *addrlen)
+{
+    assert(addr);
+    assert(addrlen);
     /* Making a potentially dangerous assumption here that msg is fine */
     char msg_copy[strlen(msg)+1];
     strcpy(msg_copy, msg);
@@ -85,11 +87,11 @@ static void set_remote_sockaddr_in(const char *msg) {
     int lsb = atoi(strtok(NULL, ","));
     in_port_t port = (msb << 8) | lsb;
     /* Create sockaddr */
-    addrlen = sizeof(struct sockaddr_in);
-    memset(&raddr, 0, addrlen);
-    ((struct sockaddr_in *)&raddr)->sin_family = AF_INET;
-    ((struct sockaddr_in *)&raddr)->sin_port = htons(port);
-    inet_pton(AF_INET, ipv4, &((struct sockaddr_in *)&raddr)->sin_addr);
+    *addrlen = sizeof(struct sockaddr_in);
+    memset(addr, 0, *addrlen);
+    ((struct sockaddr_in *)addr)->sin_family = AF_INET;
+    ((struct sockaddr_in *)addr)->sin_port = htons(port);
+    inet_pton(AF_INET, ipv4, &((struct sockaddr_in *)addr)->sin_addr);
 }
 
 /*
@@ -191,23 +193,38 @@ static void handle_ls(const char *path) {
         logwarn("Failed to open data connection to the server");
         return;
     }
+    /* Establish connection to server-DTP */
+    enum reply_code reply;
     if (rpassive) {
-        if (connect(sockdtp, (struct sockaddr *)&raddr, addrlen) < 0) {
+        reply = ftp_PASV(sockpi, &reply_msg);
+        struct sockaddr_storage addr;
+        socklen_t addrlen;
+        if (ftp_pos_completion(reply)) {
+            set_remote_sockaddr(reply_msg.arr, &addr, &addrlen);
+            puts(reply_msg.arr);
+            reply_msg.size = 0;
+        } else {
+            puts("Error executing command. See log");
+            goto exit;
+        }
+        if (connect(sockdtp, (struct sockaddr *)&addr, addrlen) < 0) {
             perror("connect");
             logwarn("Failed to connect to server-DTP");
-            return;
+            goto exit;
         }
     } else {
         /* TODO implement random PORT */
         puts("Not implemented for PORT yet");
+        goto exit;
     }
-    enum reply_code reply;
+    /* Send LIST command */
     reply = ftp_LIST(sockpi, path, &reply_msg);
     while (ftp_pos_preliminary(reply)) {
+        puts(reply_msg.arr);
+        reply_msg.size = 0;
         reply = wait_for_reply(sockpi, &reply_msg);
     }
     if (ftp_pos_completion(reply) || ftp_trans_neg(reply)) {
-        puts(reply_msg.arr);
         struct sockbuf buf = {0};
         int ch;
         /* Read stream of bytes from server-DTP */
@@ -219,10 +236,13 @@ static void handle_ls(const char *path) {
                 putchar(ch);
             }
         }
+        puts(reply_msg.arr);
     } else {
         puts("Error executing command. See log");
     }
-    vector_free(&reply_msg);
+    exit:
+          close(sockdtp);
+          vector_free(&reply_msg);
 }
 
 /* Handle cd repl command. */
@@ -239,17 +259,9 @@ static void handle_cd(const char *path) {
 
 /* Handle passive repl command. */
 static void handle_passive(void) {
-    struct vector msg;
-    vector_create(&msg, 128, 2);
-    enum reply_code reply = ftp_PASV(sockpi, &msg);
-    if (ftp_pos_completion(reply)) {
-        rpassive = true;
-        vector_append(&msg, '\0');
-        set_remote_sockaddr_in(msg.arr);
-        puts(msg.arr);
-    } else {
-        puts("Error executing command. See log");
-    }
+    rpassive = !rpassive;
+    printf("PASV before data transfers: %s\n", rpassive ? "enabled" : "disabled");
+}
     vector_free(&msg);
 }
 
