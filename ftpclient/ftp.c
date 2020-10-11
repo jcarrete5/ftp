@@ -253,7 +253,7 @@ enum reply_code ftp_PORT(int sockfd, const char *ipstr, uint16_t port) {
         vector_append(&msg, ',');
     }
     char port_str[16];
-    sprintf(port_str, "%"PRIu16",%"PRIu16, port & (uint16_t)0xff00, port & (uint16_t)0x00ff);
+    sprintf(port_str, "%"PRIu16",%"PRIu16, (port & 0xff00)>>8, (port & 0x00ff));
     vector_append_str(&msg, port_str);
     vector_append(&msg, '\0');
     loginfo("Sent: %s", msg.arr);
@@ -265,11 +265,12 @@ enum reply_code ftp_PORT(int sockfd, const char *ipstr, uint16_t port) {
 }
 
 /* Send a PASV request and await a reply. */
-enum reply_code ftp_PASV(int sockfd) {
+enum reply_code ftp_PASV(int sockfd, struct vector *reply_msg) {
+    assert(reply_msg);
     char msg[] = "PASV\r\n";
     loginfo("Sent: PASV");
     send(sockfd, msg, strlen(msg), 0);
-    return wait_for_reply(sockfd, NULL);
+    return wait_for_reply(sockfd, reply_msg);
 }
 
 /* Send a RETR request and await a reply. path must not be NULL. */

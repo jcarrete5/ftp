@@ -12,19 +12,37 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <assert.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "repl.h"
 #include "log.h"
 #include "vector.h"
 #include "ftp.h"
+#include "util.h"
 
 /* Socket file descriptor for the user-PI. */
 static int sockpi;
+
+/* True while the repl is running. False will stop on next iteration. */
 static bool repl_running = true;
+
+/*
+ * When true, the server is in passive mode (i.e. the client will initiate
+ * connections for data transfer).
+ */
+static bool rpassive = false;
+static struct sockaddr_storage raddr;
+static socklen_t addrlen;
 
 /* Read user input from stdin into the vector. Return 1 if EOF was reached. */
 static void get_input_str(struct vector *str) {
@@ -44,6 +62,34 @@ static void get_input_str(struct vector *str) {
 static void cleanup(void) {
     loginfo("Closing user-PI socket");
     close(sockpi);
+}
+
+/* Set the socket address to connect to when the server is in passive mode. */
+static void set_remote_sockaddr_in(const char *msg) {
+    /* Making a potentially dangerous assumption here that msg is fine */
+    char msg_copy[strlen(msg)+1];
+    strcpy(msg_copy, msg);
+    strtok(msg_copy, "(");
+    char *substr = strtok(NULL, ")");
+    char *token = strtok(substr, ",");
+    char ipv4[INET_ADDRSTRLEN];
+    /* Replace ',' with '.' in msg and copy into ipv4 */
+    for (int i = 0; i < 4; ++i, token = strtok(NULL, ",")) {
+        assert(token);
+        strcat(ipv4, token);
+        strcat(ipv4, ".");
+    }
+    ipv4[strlen(ipv4)-1] = '\0';
+    /* Combine most and least significant byte to form port */
+    int msb = atoi(token);
+    int lsb = atoi(strtok(NULL, ","));
+    in_port_t port = (msb << 8) | lsb;
+    /* Create sockaddr */
+    addrlen = sizeof(struct sockaddr_in);
+    memset(&raddr, 0, addrlen);
+    ((struct sockaddr_in *)&raddr)->sin_family = AF_INET;
+    ((struct sockaddr_in *)&raddr)->sin_port = htons(port);
+    inet_pton(AF_INET, ipv4, &((struct sockaddr_in *)&raddr)->sin_addr);
 }
 
 /*
@@ -139,12 +185,40 @@ static void handle_system(void) {
 static void handle_ls(const char *path) {
     struct vector reply_msg;
     vector_create(&reply_msg, 128, 2);
-    enum reply_code reply = ftp_LIST(sockpi, path, &reply_msg);
+    int sockdtp = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sockdtp < 0) {
+        perror("socket");
+        logwarn("Failed to open data connection to the server");
+        return;
+    }
+    if (rpassive) {
+        if (connect(sockdtp, (struct sockaddr *)&raddr, addrlen) < 0) {
+            perror("connect");
+            logwarn("Failed to connect to server-DTP");
+            return;
+        }
+    } else {
+        /* TODO implement random PORT */
+        puts("Not implemented for PORT yet");
+    }
+    enum reply_code reply;
+    reply = ftp_LIST(sockpi, path, &reply_msg);
     while (ftp_pos_preliminary(reply)) {
         reply = wait_for_reply(sockpi, &reply_msg);
     }
     if (ftp_pos_completion(reply) || ftp_trans_neg(reply)) {
         puts(reply_msg.arr);
+        struct sockbuf buf = {0};
+        int ch;
+        /* Read stream of bytes from server-DTP */
+        while ((ch = getchar_from_sock(sockdtp, &buf))) {
+            if (ch < 0) {
+                perror("recv");
+                logerr("Error while reading from server-DTP");
+            } else {
+                putchar(ch);
+            }
+        }
     } else {
         puts("Error executing command. See log");
     }
@@ -161,6 +235,22 @@ static void handle_cd(const char *path) {
     if (!ftp_pos_completion(reply)) {
         puts("Failed to change working directory. See log");
     }
+}
+
+/* Handle passive repl command. */
+static void handle_passive(void) {
+    struct vector msg;
+    vector_create(&msg, 128, 2);
+    enum reply_code reply = ftp_PASV(sockpi, &msg);
+    if (ftp_pos_completion(reply)) {
+        rpassive = true;
+        vector_append(&msg, '\0');
+        set_remote_sockaddr_in(msg.arr);
+        puts(msg.arr);
+    } else {
+        puts("Error executing command. See log");
+    }
+    vector_free(&msg);
 }
 
 /* Start the REPL for the user-PI. */
@@ -199,6 +289,8 @@ void repl(const int sockfd, const char *ipstr) {
         } else if (strcmp(token, "cd") == 0) {
             token = strtok(NULL, " \t");
             handle_cd(token);
+        } else if (strcmp(token, "passive") == 0) {
+            handle_passive();
         } else {
             puts("Unknown command");
         }
