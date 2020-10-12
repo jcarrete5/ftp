@@ -169,13 +169,13 @@ static void handle_ls(const char *path) {
         reply = wait_for_reply(sockpi, &reply_msg);
     }
     if (ftp_pos_completion(reply) || ftp_trans_neg(reply)) {
-        struct sockbuf buf = {0};
         int ch;
         /* Read stream of bytes from server-DTP */
-        while ((ch = getchar_from_sock(sockdtp, &buf))) {
+        while ((ch = getchar_from_sock(sockdtp, &dtp_buf))) {
             if (ch < 0) {
                 perror("recv");
                 logerr("Error while reading from server-DTP");
+                break;
             } else {
                 putchar(ch);
             }
