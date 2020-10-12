@@ -229,6 +229,7 @@ void repl(const int sockfd, const char *ipstr) {
         printf("> ");
         get_input_str(&in);
         const char *token = strtok(in.arr, " \t");
+        if (!token) goto end;
         if (strcmp(token, "quit") == 0) {
             handle_quit();
         } else if (strcmp(token, "help") == 0) {
@@ -249,6 +250,7 @@ void repl(const int sockfd, const char *ipstr) {
         } else {
             puts("Unknown command");
         }
+        end:
         in.size = 0;
     }
     vector_free(&in);
