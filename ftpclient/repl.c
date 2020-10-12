@@ -217,6 +217,7 @@ static void handle_get(const char *path) {
     }
     struct vector in;
     vector_create(&in, 128, 2);
+    uint8_t *databuf = calloc(sizeof *databuf, BUFSIZ);
     printf("Save location: ");
     get_input_str(&in);
     FILE *file = fopen(in.arr, "w");
@@ -236,17 +237,17 @@ static void handle_get(const char *path) {
     while (ftp_pos_preliminary(reply)) {
         puts(reply_msg.arr);
         reply_msg.size = 0;
-        int ch;
+        ssize_t read;
         /* Read stream of bytes from server-DTP */
-        while ((ch = getchar_from_sock(sockdtp, &dtp_buf))) {
-            if (ch < 0) {
+        while ((read=recv(sockdtp, databuf, BUFSIZ, 0))) {
+            if (read < 0) {
                 perror("recv");
                 logerr("Error while reading from server-DTP");
-                break;
+                goto exit;
             } else {
-                if (EOF == fputc(ch, file)) {
+                if (fwrite(databuf, sizeof *databuf, read, file) < read) {
                     logwarn("May have failed to save all data to file");
-                    break;
+                    goto exit;
                 }
             }
         }
@@ -254,6 +255,7 @@ static void handle_get(const char *path) {
     }
     puts(reply_msg.arr);
     exit:
+    free(databuf);
     fclose(file);
     close(sockdtp);
     vector_free(&reply_msg);

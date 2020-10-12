@@ -25,7 +25,7 @@
 #include "vector.h"
 
 struct sockbuf {
-    char data[512];
+    uint8_t data[BUFSIZ];
     size_t i;
     size_t size;
 };
