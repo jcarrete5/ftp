@@ -3,8 +3,8 @@
  * Jason R. Carrete
  * ftp.c
  *
- * This module implements FTP commands sent between the user-PI and the
- * server-PI. Each function is a wrapper around an FTP command.
+ * This module implements FTP commands sent between the user and the
+ * server. Each function is a wrapper around an FTP command.
  */
 
 #include "config.h"
@@ -18,6 +18,8 @@
 #include <setjmp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <regex.h>
 #include <errno.h>
 #include <string.h>
@@ -63,7 +65,73 @@ static char pi_getchar(int sockfd) {
         exit(EXIT_FAILURE);
     }
 }
-    return buf[buf_i++];
+
+/* Set the socket address to connect to when the server is in passive mode. */
+static void set_remote_sockaddr
+(const char *msg, struct sockaddr_storage *addr, socklen_t *addrlen)
+{
+    assert(addr);
+    assert(addrlen);
+    /* Making a potentially dangerous assumption here that msg is fine */
+    char msg_copy[strlen(msg)+1];
+    strcpy(msg_copy, msg);
+    strtok(msg_copy, "(");
+    char *substr = strtok(NULL, ")");
+    char *token = strtok(substr, ",");
+    char ipv4[INET_ADDRSTRLEN];
+    /* Replace ',' with '.' in msg and copy into ipv4 */
+    for (int i = 0; i < 4; ++i, token = strtok(NULL, ",")) {
+        assert(token);
+        strcat(ipv4, token);
+        strcat(ipv4, ".");
+    }
+    ipv4[strlen(ipv4)-1] = '\0';
+    /* Combine most and least significant byte to form port */
+    int msb = atoi(token);
+    int lsb = atoi(strtok(NULL, ","));
+    in_port_t port = (msb << 8) | lsb;
+    /* Create sockaddr */
+    *addrlen = sizeof(struct sockaddr_in);
+    memset(addr, 0, *addrlen);
+    ((struct sockaddr_in *)addr)->sin_family = AF_INET;
+    ((struct sockaddr_in *)addr)->sin_port = htons(port);
+    inet_pton(AF_INET, ipv4, &((struct sockaddr_in *)addr)->sin_addr);
+}
+
+/* Connect to server-DTP. */
+int connect_to_dtp(int sockpi, bool rpassive) {
+    int sockdtp = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sockdtp < 0) {
+        perror("socket");
+        logwarn("Failed to open data connection to the server");
+        return -1;
+    }
+    enum reply_code reply;
+    if (rpassive) {
+        struct vector reply_msg;
+        vector_create(&reply_msg, 128, 2);
+        reply = ftp_PASV(sockpi, &reply_msg);
+        struct sockaddr_storage addr;
+        socklen_t addrlen;
+        if (ftp_pos_completion(reply)) {
+            set_remote_sockaddr(reply_msg.arr, &addr, &addrlen);
+            puts(reply_msg.arr);
+        } else {
+            puts("Error executing command. See log");
+            sockdtp = -1;
+        }
+        if (connect(sockdtp, (struct sockaddr *)&addr, addrlen) < 0) {
+            perror("connect");
+            logwarn("Failed to connect to server-DTP");
+            sockdtp = -1;
+        }
+        vector_free(&reply_msg);
+    } else {
+        /* TODO implement random PORT */
+        puts("Not implemented for PORT yet");
+        sockdtp = -1;
+    }
+    return sockdtp;
 }
 
 /* Parse multi-line reply from FTP Server. */

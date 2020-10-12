@@ -50,6 +50,7 @@ enum reply_code {
 };
 
 int getchar_from_sock(int sockfd, struct sockbuf *buf);
+int connect_to_dtp(int sockpi, bool rpassive);
 enum reply_code wait_for_reply(const int sockfd, struct vector *out_msg);
 enum reply_code ftp_USER(int sockfd, const char *username);
 enum reply_code ftp_PASS(int sockfd, const char *password);
