@@ -217,7 +217,7 @@ static void handle_get(const char *path) {
     }
     struct vector in;
     vector_create(&in, 128, 2);
-    uint8_t *databuf = calloc(sizeof *databuf, BUFSIZ);
+    uint8_t *databuf = calloc(BUFSIZ, sizeof *databuf);
     printf("Save location: ");
     get_input_str(&in);
     FILE *file = fopen(in.arr, "w");
