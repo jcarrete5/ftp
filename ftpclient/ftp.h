@@ -20,6 +20,12 @@
 /* Check if reply code x is a perminent negative reply. */
 #define ftp_perm_neg(x) ((x) >= 500 && (x) < 600)
 
+#define FTPC_DO_PORT 0U  /* Delivery Option Port */
+#define FTPC_DO_PASV 1U  /* Delivery Option Passive */
+#define FTPC_DO_EXT  2U  /* Delivery Option Extended */
+#define FTPC_DO_EPSV (FTPC_DO_PASV | FTPC_DO_EXT)
+#define FTPC_DO_EPRT (FTPC_DO_PORT | FTPC_DO_EXT)
+
 #include <stdint.h>
 #include <stddef.h>
 #include "vector.h"
@@ -50,7 +56,7 @@ enum reply_code {
 };
 
 int getchar_from_sock(int sockfd, struct sockbuf *buf);
-int connect_to_dtp(int sockpi, bool rpassive);
+int connect_to_dtp(int sockpi, unsigned int delivery_option);
 enum reply_code wait_for_reply(const int sockfd, struct vector *out_msg);
 enum reply_code ftp_USER(int sockfd, const char *username);
 enum reply_code ftp_PASS(int sockfd, const char *password);

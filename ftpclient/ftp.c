@@ -99,7 +99,7 @@ static void set_remote_sockaddr
 }
 
 /* Connect to server-DTP. */
-int connect_to_dtp(int sockpi, bool rpassive) {
+int connect_to_dtp(int sockpi, unsigned int delivery_option) {
     int sockdtp = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockdtp < 0) {
         perror("socket");
@@ -107,30 +107,34 @@ int connect_to_dtp(int sockpi, bool rpassive) {
         return -1;
     }
     enum reply_code reply;
-    if (rpassive) {
-        struct vector reply_msg;
-        vector_create(&reply_msg, 128, 2);
-        reply = ftp_PASV(sockpi, &reply_msg);
-        struct sockaddr_storage addr;
-        socklen_t addrlen;
-        if (ftp_pos_completion(reply)) {
-            set_remote_sockaddr(reply_msg.arr, &addr, &addrlen);
-            puts(reply_msg.arr);
-        } else {
-            puts("Error executing command. See log");
+    struct vector reply_msg;
+    vector_create(&reply_msg, 128, 2);
+    switch (delivery_option) {
+        case FTPC_DO_PASV:
+            reply = ftp_PASV(sockpi, &reply_msg);
+            struct sockaddr_storage addr;
+            socklen_t addrlen;
+            if (ftp_pos_completion(reply)) {
+                set_remote_sockaddr(reply_msg.arr, &addr, &addrlen);
+                puts(reply_msg.arr);
+            } else {
+                puts("Error executing command. See log");
+                sockdtp = -1;
+            }
+            if (connect(sockdtp, (struct sockaddr *)&addr, addrlen) < 0) {
+                perror("connect");
+                logwarn("Failed to connect to server-DTP");
+                sockdtp = -1;
+            }
+            break;
+        case FTPC_DO_PORT:
+            /* TODO implement random PORT */
+        default:
+            puts("Delivery option not implemented");
             sockdtp = -1;
-        }
-        if (connect(sockdtp, (struct sockaddr *)&addr, addrlen) < 0) {
-            perror("connect");
-            logwarn("Failed to connect to server-DTP");
-            sockdtp = -1;
-        }
-        vector_free(&reply_msg);
-    } else {
-        /* TODO implement random PORT */
-        puts("Not implemented for PORT yet");
-        sockdtp = -1;
+            break;
     }
+    vector_free(&reply_msg);
     return sockdtp;
 }
 

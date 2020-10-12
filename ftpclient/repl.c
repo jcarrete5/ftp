@@ -36,10 +36,10 @@ static int sockpi;
 static bool repl_running = true;
 
 /*
- * When true, the server is in passive mode (i.e. the client will initiate
- * connections for data transfer).
+ * Specifies the delivery option for data transfer commands. This field is a
+ * 2-bit bit-string where msb is PASV or PORT and lsb specifies EXT.
  */
-static bool rpassive = true;
+static unsigned int delivery_option = FTPC_DO_PASV;
 
 /* Buffer for DTP data. */
 static struct sockbuf dtp_buf = {0};
@@ -157,7 +157,7 @@ static void handle_system(void) {
 static void handle_ls(const char *path) {
     struct vector reply_msg;
     vector_create(&reply_msg, 128, 2);
-    int sockdtp = connect_to_dtp(sockpi, rpassive);
+    int sockdtp = connect_to_dtp(sockpi, delivery_option);
     if (sockdtp < 0) {
         goto exit;
     }
@@ -205,8 +205,39 @@ static void handle_cd(const char *path) {
 
 /* Handle passive repl command. */
 static void handle_passive(void) {
-    rpassive = !rpassive;
-    printf("PASV before data transfers: %s\n", rpassive ? "enabled" : "disabled");
+    delivery_option ^= FTPC_DO_PASV;
+    switch (delivery_option) {
+        case FTPC_DO_PASV:
+            puts("PASV before data transfer is enabled");
+            break;
+        case FTPC_DO_EPSV:
+            puts("EPSV before data transfer is enabled");
+            break;
+        case FTPC_DO_PORT:
+            puts("PORT before data transfer is enabled");
+            break;
+        case FTPC_DO_EPRT:
+            puts("EPRT before data transfer is enabled");
+            break;
+    }
+}
+
+static void handle_extend(void) {
+    delivery_option ^= FTPC_DO_EXT;
+    switch (delivery_option) {
+        case FTPC_DO_PASV:
+            puts("PASV before data transfer is enabled");
+            break;
+        case FTPC_DO_EPSV:
+            puts("EPSV before data transfer is enabled");
+            break;
+        case FTPC_DO_PORT:
+            puts("PORT before data transfer is enabled");
+            break;
+        case FTPC_DO_EPRT:
+            puts("EPRT before data transfer is enabled");
+            break;
+    }
 }
 
 /* Handle get repl command. path points to a remote file. */
@@ -227,7 +258,7 @@ static void handle_get(const char *path) {
         perror("fopen");
         return;
     }
-    int sockdtp = connect_to_dtp(sockpi, rpassive);
+    int sockdtp = connect_to_dtp(sockpi, delivery_option);
     if (sockdtp < 0) {
         goto exit;
     }
@@ -279,7 +310,7 @@ static void handle_send(const char *localpath) {
     /* Read save location */
     printf("Save location (on server): ");
     get_input_str(&in);
-    int sockdtp = connect_to_dtp(sockpi, rpassive);
+    int sockdtp = connect_to_dtp(sockpi, delivery_option);
     if (sockdtp < 0) {
         goto exit;
     }
