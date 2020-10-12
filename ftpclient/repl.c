@@ -41,6 +41,9 @@ static bool repl_running = true;
  */
 static bool rpassive = true;
 
+/* Buffer for DTP data. */
+static struct sockbuf dtp_buf = {0};
+
 /* Read user input from stdin into the vector. Return 1 if EOF was reached. */
 static void get_input_str(struct vector *str) {
     int ch;
@@ -182,8 +185,8 @@ static void handle_ls(const char *path) {
         puts("Error executing command. See log");
     }
     exit:
-          close(sockdtp);
-          vector_free(&reply_msg);
+    close(sockdtp);
+    vector_free(&reply_msg);
 }
 
 /* Handle cd repl command. */
@@ -205,7 +208,55 @@ static void handle_passive(void) {
     rpassive = !rpassive;
     printf("PASV before data transfers: %s\n", rpassive ? "enabled" : "disabled");
 }
-    vector_free(&msg);
+
+/* Handle get repl command. */
+static void handle_get(const char *path) {
+    if (!path) {
+        puts("Path must not be NULL");
+        return;
+    }
+    struct vector in;
+    vector_create(&in, 128, 2);
+    printf("Save location: ");
+    get_input_str(&in);
+    FILE *file = fopen(in.arr, "w");
+    in.size = 0;
+    vector_free(&in);
+    if (!file) {
+        perror("fopen");
+        return;
+    }
+    int sockdtp = connect_to_dtp(sockpi, rpassive);
+    if (sockdtp < 0) {
+        goto exit;
+    }
+    struct vector reply_msg;
+    vector_create(&reply_msg, 128, 2);
+    enum reply_code reply = ftp_RETR(sockpi, path, &reply_msg);
+    while (ftp_pos_preliminary(reply)) {
+        puts(reply_msg.arr);
+        reply_msg.size = 0;
+        int ch;
+        /* Read stream of bytes from server-DTP */
+        while ((ch = getchar_from_sock(sockdtp, &dtp_buf))) {
+            if (ch < 0) {
+                perror("recv");
+                logerr("Error while reading from server-DTP");
+                break;
+            } else {
+                if (EOF == fputc(ch, file)) {
+                    logwarn("May have failed to save all data to file");
+                    break;
+                }
+            }
+        }
+        reply = wait_for_reply(sockpi, &reply_msg);
+    }
+    puts(reply_msg.arr);
+    exit:
+    fclose(file);
+    close(sockdtp);
+    vector_free(&reply_msg);
 }
 
 /* Start the REPL for the user-PI. */
@@ -247,6 +298,9 @@ void repl(const int sockfd, const char *ipstr) {
             handle_cd(token);
         } else if (strcmp(token, "passive") == 0) {
             handle_passive();
+        } else if (strcmp(token, "get") == 0) {
+            token = strtok(NULL, " \t");
+            handle_get(token);
         } else {
             puts("Unknown command");
         }
