@@ -263,6 +263,7 @@ static void handle_get(const char *path) {
 
 /* Handle send repl command. path points to local file. */
 static void handle_send(const char *localpath) {
+    /* Validate args and init variables */
     if (!localpath) {
         puts("Path must not be NULL");
         return;
@@ -272,8 +273,10 @@ static void handle_send(const char *localpath) {
         perror("fopen");
         return;
     }
+    uint8_t *databuf = calloc(BUFSIZ, sizeof *databuf);
     struct vector in;
     vector_create(&in, 128, 2);
+    /* Read save location */
     printf("Save location (on server): ");
     get_input_str(&in);
     int sockdtp = connect_to_dtp(sockpi, rpassive);
@@ -286,9 +289,9 @@ static void handle_send(const char *localpath) {
     while (ftp_pos_preliminary(reply)) {
         puts(reply_msg.arr);
         reply_msg.size = 0;
-        char ch;
-        while ((ch=fgetc(in_file)) != EOF) {
-            if (send(sockdtp, &ch, sizeof ch, 0) < 0) {
+        size_t read;
+        while ((read=fread(databuf, sizeof *databuf, BUFSIZ, in_file)) > 0) {
+            if (send(sockdtp, databuf, BUFSIZ, 0) <= 0) {
                 perror("send");
                 goto exit;
             }
@@ -298,6 +301,7 @@ static void handle_send(const char *localpath) {
     }
     puts(reply_msg.arr);
     exit:
+    free(databuf);
     fclose(in_file);
     close(sockdtp);
     vector_free(&reply_msg);
