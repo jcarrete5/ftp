@@ -209,7 +209,7 @@ static void handle_passive(void) {
     printf("PASV before data transfers: %s\n", rpassive ? "enabled" : "disabled");
 }
 
-/* Handle get repl command. */
+/* Handle get repl command. path points to a remote file. */
 static void handle_get(const char *path) {
     if (!path) {
         puts("Path must not be NULL");
@@ -259,6 +259,49 @@ static void handle_get(const char *path) {
     vector_free(&reply_msg);
 }
 
+/* Handle send repl command. path points to local file. */
+static void handle_send(const char *localpath) {
+    if (!localpath) {
+        puts("Path must not be NULL");
+        return;
+    }
+    FILE *in_file = fopen(localpath, "r");
+    if (!in_file) {
+        perror("fopen");
+        return;
+    }
+    struct vector in;
+    vector_create(&in, 128, 2);
+    printf("Save location (on server): ");
+    get_input_str(&in);
+    int sockdtp = connect_to_dtp(sockpi, rpassive);
+    if (sockdtp < 0) {
+        goto exit;
+    }
+    struct vector reply_msg;
+    vector_create(&reply_msg, 128, 2);
+    enum reply_code reply = ftp_STOR(sockpi, in.arr, &reply_msg);
+    while (ftp_pos_preliminary(reply)) {
+        puts(reply_msg.arr);
+        reply_msg.size = 0;
+        char ch;
+        while ((ch=fgetc(in_file)) != EOF) {
+            if (send(sockdtp, &ch, sizeof ch, 0) < 0) {
+                perror("send");
+                goto exit;
+            }
+        }
+        close(sockdtp);
+        reply = wait_for_reply(sockpi, &reply_msg);
+    }
+    puts(reply_msg.arr);
+    exit:
+    fclose(in_file);
+    close(sockdtp);
+    vector_free(&reply_msg);
+    vector_free(&in);
+}
+
 /* Start the REPL for the user-PI. */
 void repl(const int sockfd, const char *ipstr) {
     sockpi = sockfd;
@@ -301,6 +344,9 @@ void repl(const int sockfd, const char *ipstr) {
         } else if (strcmp(token, "get") == 0) {
             token = strtok(NULL, " \t");
             handle_get(token);
+        } else if (strcmp(token, "send") == 0) {
+            token = strtok(NULL, " \t");
+            handle_send(token);
         } else {
             puts("Unknown command");
         }

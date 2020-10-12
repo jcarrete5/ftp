@@ -371,7 +371,7 @@ enum reply_code ftp_RETR(int sockfd, const char *path, struct vector *out_msg) {
 }
 
 /* Send a STOR request and await a reply. path must not be NULL. */
-enum reply_code ftp_STOR(int sockfd, const char *path) {
+enum reply_code ftp_STOR(int sockfd, const char *path, struct vector *out_msg) {
     struct vector msg;
     vector_create(&msg, 64, 2);
     vector_append_str(&msg, "STOR ");
@@ -382,7 +382,7 @@ enum reply_code ftp_STOR(int sockfd, const char *path) {
     vector_append_str(&msg, "\r\n");
     send(sockfd, msg.arr, msg.size, 0);
     vector_free(&msg);
-    return wait_for_reply(sockfd, NULL);
+    return wait_for_reply(sockfd, out_msg);
 }
 
 enum reply_code ftp_EPRT(int sockfd, int family, const char *ipstr, const uint16_t port) {
