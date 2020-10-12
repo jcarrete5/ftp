@@ -40,12 +40,12 @@ int getchar_from_sock(int sockfd, struct sockbuf *buf) {
     assert(buf);
     if (buf->i == buf->size) {
         ssize_t read = recv(sockfd, buf->data, sizeof buf->data, 0);
+        buf->i = 0;
+        buf->size = read < 0 ? 0 : read;
         if (read <= 0) {
             /* Signal exceptional case */
             return read;
         }
-        buf->i = 0;
-        buf->size = read;
     }
     return buf->data[(buf->i)++];
 }
