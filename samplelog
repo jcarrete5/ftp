@@ -1,0 +1,65 @@
+~~~~~~~~~~ session start ~~~~~~~~~~
+ftpc 0.3.0
+Mon Oct 12 22:23:37 2020 [INFO] Trying ::1
+Mon Oct 12 22:23:37 2020 [WARN] Failed to connect to ::1; trying another address
+Mon Oct 12 22:23:37 2020 [INFO] Trying 127.0.0.1
+Mon Oct 12 22:23:37 2020 [INFO] Connected to 127.0.0.1
+Mon Oct 12 22:23:37 2020 [INFO] Received: 220 (vsFTPd 3.0.3)
+Mon Oct 12 22:23:39 2020 [INFO] Sent: USER buddy
+Mon Oct 12 22:23:39 2020 [INFO] Received: 331 Please specify the password.
+Mon Oct 12 22:23:41 2020 [INFO] Sent: PASS password
+Mon Oct 12 22:23:41 2020 [INFO] Received: 230 Login successful.
+Mon Oct 12 22:23:43 2020 [INFO] Sent: PASV
+Mon Oct 12 22:23:43 2020 [INFO] Received: 227 Entering Passive Mode (127,0,0,1,170,128).
+Mon Oct 12 22:23:43 2020 [INFO] Sent: LIST
+Mon Oct 12 22:23:43 2020 [INFO] Received: 150 Here comes the directory listing.
+Mon Oct 12 22:23:43 2020 [INFO] Received: 226 Directory send OK.
+Mon Oct 12 22:23:44 2020 [INFO] Sent: SYST
+Mon Oct 12 22:23:44 2020 [INFO] Received: 215 UNIX Type: L8
+Mon Oct 12 22:23:46 2020 [INFO] Sent: HELP
+Mon Oct 12 22:23:46 2020 [INFO] Received: 214 The following commands are recognized.
+ ABOR ACCT ALLO APPE CDUP CWD  DELE EPRT EPSV FEAT HELP LIST MDTM MKD
+ MODE NLST NOOP OPTS PASS PASV PORT PWD  QUIT REIN REST RETR RMD  RNFR
+ RNTO SITE SIZE SMNT STAT STOR STOU STRU SYST TYPE USER XCUP XCWD XMKD
+ XPWD XRMD
+214 Help OK.
+Mon Oct 12 22:23:51 2020 [INFO] Sent: CWD test
+Mon Oct 12 22:23:51 2020 [INFO] Received: 250 Directory successfully changed.
+Mon Oct 12 22:23:51 2020 [INFO] Sent: PASV
+Mon Oct 12 22:23:51 2020 [INFO] Received: 227 Entering Passive Mode (127,0,0,1,161,166).
+Mon Oct 12 22:23:51 2020 [INFO] Sent: LIST
+Mon Oct 12 22:23:51 2020 [INFO] Received: 150 Here comes the directory listing.
+Mon Oct 12 22:23:51 2020 [INFO] Received: 226 Directory send OK.
+Mon Oct 12 22:23:53 2020 [INFO] Sent: CWD ..
+Mon Oct 12 22:23:53 2020 [INFO] Received: 250 Directory successfully changed.
+Mon Oct 12 22:23:54 2020 [INFO] Sent: PASV
+Mon Oct 12 22:23:54 2020 [INFO] Received: 227 Entering Passive Mode (127,0,0,1,164,201).
+Mon Oct 12 22:23:54 2020 [INFO] Sent: LIST
+Mon Oct 12 22:23:54 2020 [INFO] Received: 150 Here comes the directory listing.
+Mon Oct 12 22:23:54 2020 [INFO] Received: 226 Directory send OK.
+Mon Oct 12 22:24:06 2020 [INFO] Sent: PASV
+Mon Oct 12 22:24:06 2020 [INFO] Received: 227 Entering Passive Mode (127,0,0,1,171,29).
+Mon Oct 12 22:24:06 2020 [INFO] Sent: RETR rfc959.pdf
+Mon Oct 12 22:24:06 2020 [INFO] Received: 150 Opening BINARY mode data connection for rfc959.pdf (144223 bytes).
+Mon Oct 12 22:24:06 2020 [INFO] Received: 226 Transfer complete.
+Mon Oct 12 22:24:19 2020 [INFO] Sent: PASV
+Mon Oct 12 22:24:19 2020 [INFO] Received: 227 Entering Passive Mode (127,0,0,1,166,63).
+Mon Oct 12 22:24:19 2020 [INFO] Sent: STOR ooo.txt
+Mon Oct 12 22:24:19 2020 [INFO] Received: 150 Ok to send data.
+Mon Oct 12 22:24:19 2020 [INFO] Received: 226 Transfer complete.
+Mon Oct 12 22:24:22 2020 [INFO] Sent: PASV
+Mon Oct 12 22:24:22 2020 [INFO] Received: 227 Entering Passive Mode (127,0,0,1,174,77).
+Mon Oct 12 22:24:22 2020 [INFO] Sent: LIST
+Mon Oct 12 22:24:22 2020 [INFO] Received: 150 Here comes the directory listing.
+Mon Oct 12 22:24:22 2020 [INFO] Received: 226 Directory send OK.
+Mon Oct 12 22:24:38 2020 [INFO] Sent: PWD
+Mon Oct 12 22:24:38 2020 [INFO] Received: 257 "/" is the current directory
+Mon Oct 12 22:24:49 2020 [INFO] Sent: CWD test
+Mon Oct 12 22:24:49 2020 [INFO] Received: 250 Directory successfully changed.
+Mon Oct 12 22:24:50 2020 [INFO] Sent: PWD
+Mon Oct 12 22:24:50 2020 [INFO] Received: 257 "/test" is the current directory
+Mon Oct 12 22:24:52 2020 [INFO] Sent: QUIT
+Mon Oct 12 22:24:52 2020 [INFO] Received: 221 Goodbye.
+Mon Oct 12 22:24:52 2020 [INFO] Closing user-PI socket
+~~~~~~~~~~~ session end ~~~~~~~~~~~
+
