@@ -177,7 +177,6 @@ int main(int argc, char *argv[]) {
     }
     struct addrinfo *addrlist;
     resolve_domain(hostname, &addrlist, port);
-    srand(time(NULL));
     init_conn(addrlist);
     return EXIT_SUCCESS;
 }

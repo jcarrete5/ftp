@@ -32,6 +32,9 @@
 /* Socket file descriptor for the user-PI. */
 static int sockpi;
 
+/* IP address of remote server. */
+static const char *ripstr;
+
 /* True while the repl is running. False will stop on next iteration. */
 static bool repl_running = true;
 
@@ -163,7 +166,7 @@ static void handle_ls(const char *path) {
     vector_create(&reply_msg, 128, 2);
     int sockdtp = -1;
     if (rpassive) {
-        sockdtp = connect_to_dtp(sockpi, delivery_option);
+        sockdtp = connect_to_dtp(sockpi, delivery_option, ripstr);
         if (sockdtp < 0) {
             goto exit;
         }
@@ -287,7 +290,7 @@ static void handle_get(const char *path) {
     /* Connect to or wait for server */
     enum reply_code reply;
     if (rpassive) {
-        sockdtp = connect_to_dtp(sockpi, delivery_option);
+        sockdtp = connect_to_dtp(sockpi, delivery_option, ripstr);
         if (sockdtp < 0) {
             goto exit;
         }
@@ -369,7 +372,7 @@ static void handle_send(const char *localpath) {
     /* Connect to or wait for reply server */
     enum reply_code reply;
     if (rpassive) {
-        sockdtp = connect_to_dtp(sockpi, delivery_option);
+        sockdtp = connect_to_dtp(sockpi, delivery_option, ripstr);
         if (sockdtp < 0) {
             goto exit;
         }
@@ -418,6 +421,7 @@ static void handle_send(const char *localpath) {
 /* Start the REPL for the user-PI. */
 void repl(const int sockfd, const char *ipstr) {
     sockpi = sockfd;
+    ripstr = ipstr;
     if (atexit(cleanup)) {
         logwarn("Socket for user-PI will not be cleaned up on exit");
     }

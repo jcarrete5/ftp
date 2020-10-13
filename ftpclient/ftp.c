@@ -157,8 +157,65 @@ static int do_PASV(int sockpi) {
     return sockdtp;
 }
 
-static void do_EPSV(int sockpi) {
+static int do_EPSV(int sockpi, const char *ipstr) {
+    uint16_t port;
+    struct vector reply_msg;
+    vector_create(&reply_msg, 128, 2);
+    int af = strchr(ipstr, ':') ? AF_INET6 : AF_INET;
+    int sockdtp = socket(af, SOCK_STREAM, IPPROTO_TCP);
+    if (sockdtp < 0) {
+        perror("socket");
+        logwarn("Failed to open data connection to the server");
+        sockdtp = -1;
+        goto exit;
+    }
 
+    /* Send EPSV and wait for reply */
+    enum reply_code code = ftp_EPSV(sockpi, &reply_msg);
+    if (ftp_pos_completion(code)) {
+        puts(reply_msg.arr);
+        strtok(reply_msg.arr, "|");
+        char *port_str = strtok(NULL, "|");
+        port = atoi(port_str);
+    } else {
+        puts("Error executing command. See log");
+        close(sockdtp);
+        sockdtp = -1;
+        goto exit;
+    }
+
+    /* Connect to server-DTP */
+    struct sockaddr addr = {0};
+    struct sockaddr_in *ipv4;
+    struct sockaddr_in6 *ipv6;
+    socklen_t addrlen;
+    switch (af) {
+        case AF_INET:
+            ipv4 = (struct sockaddr_in *)&addr;
+            inet_pton(af, ipstr, &(ipv4->sin_addr));
+            ipv4->sin_port = htons(port);
+            ipv4->sin_family = af;
+            addrlen = sizeof(struct sockaddr_in);
+            break;
+        case AF_INET6:
+            ipv6 = (struct sockaddr_in6 *)&addr;
+            inet_pton(af, ipstr, &(ipv6->sin6_addr));
+            ipv6->sin6_port = htons(port);
+            ipv6->sin6_family = af;
+            addrlen = sizeof(struct sockaddr_in6);
+            break;
+    }
+    if (connect(sockdtp, &addr, addrlen) < 0) {
+        perror("connect");
+        logwarn("Failed to connect to server-DTP");
+        close(sockdtp);
+        sockdtp = -1;
+        goto exit;
+    }
+
+    exit:
+    vector_free(&reply_msg);
+    return sockdtp;
 }
 
 static int do_PORT(int sockpi, pthread_t *tid, const char *ipstr) {
@@ -186,7 +243,6 @@ static int do_PORT(int sockpi, pthread_t *tid, const char *ipstr) {
     }
     struct sockaddr_in *myport = (struct sockaddr_in *)&saddr_myport;
     uint16_t port = htons(myport->sin_port);
-    printf("%s:%"PRIu16"\n", ipstr, port);
 
     /* Start waiting for connections */
     if (pthread_create(tid, NULL, accept_connection, socklisten)) {
@@ -212,18 +268,19 @@ static int do_PORT(int sockpi, pthread_t *tid, const char *ipstr) {
     return -1;
 }
 
-static void do_EPRT(int sockpi, int sockdtp) {
-
+static int do_EPRT(int sockpi, int sockdtp) {
+    return -1;
 }
 
 /* Connect to server-DTP. */
-int connect_to_dtp(int sockpi, unsigned int delivery_option) {
+int connect_to_dtp(int sockpi, unsigned int delivery_option, const char *ripstr) {
     assert((delivery_option & FTPC_DO_PASV) == 1);
     int sockdtp;
     if ((delivery_option & FTPC_DO_EXT) == 0) {
         sockdtp = do_PASV(sockpi);
     } else {
-        // sockdtp = do_EPSV(sockpi);
+        assert(ripstr);
+        sockdtp = do_EPSV(sockpi, ripstr);
     }
     return sockdtp;
 }
@@ -256,6 +313,7 @@ int accept_server(int sockpi, unsigned int delivery_option, pthread_t *tid) {
         }
     } else {
         // tid = do_EPRT(sockpi, ipstr);
+        return -1;
     }
     return 0;
 }
@@ -527,22 +585,16 @@ enum reply_code ftp_EPRT(int sockfd, int family, const char *ipstr, const uint16
     vector_append(&msg, '\0');
     loginfo("Sent: %s", msg.arr);
     msg.size--;
+    vector_append_str(&msg, "\r\n");
     send(sockfd, msg.arr, msg.size, 0);
     vector_free(&msg);
     return wait_for_reply(sockfd, NULL);
 }
 
-enum reply_code ftp_EPSV(int sockfd, const uint16_t port) {
-    struct vector msg;
-    vector_create(&msg, 64, 2);
-    char port_str[6];
-    sprintf(port_str, "%"PRIu16, port);
-    vector_append_str(&msg, "EPSV ");
-    vector_append_str(&msg, port_str);
-    vector_append(&msg, '\0');
-    loginfo("Sent: %s", msg.arr);
-    msg.size--;
-    send(sockfd, msg.arr, msg.size, 0);
-    vector_free(&msg);
-    return wait_for_reply(sockfd, NULL);
+enum reply_code ftp_EPSV(int sockfd, struct vector *out_msg) {
+    assert(out_msg);
+    char msg[] = "EPSV\r\n";
+    loginfo("Sent: ESPV");
+    send(sockfd, msg, strlen(msg), 0);
+    return wait_for_reply(sockfd, out_msg);
 }

@@ -60,7 +60,7 @@ enum reply_code {
 };
 
 int getchar_from_sock(int sockfd, struct sockbuf *buf);
-int connect_to_dtp(int sockpi, unsigned int delivery_option);
+int connect_to_dtp(int sockpi, unsigned int delivery_option, const char *ripstr);
 int accept_server(int sockpi, unsigned int deliv_opt, pthread_t *tid);
 enum reply_code wait_for_reply(const int sockfd, struct vector *out_msg);
 enum reply_code ftp_USER(int sockfd, const char *username);
@@ -76,6 +76,6 @@ enum reply_code ftp_PASV(int sockfd, struct vector *reply_msg);
 enum reply_code ftp_RETR(int sockfd, const char *path, struct vector *reply_msg);
 enum reply_code ftp_STOR(int sockfd, const char *path, struct vector *reply_msg);
 enum reply_code ftp_EPRT(int sockfd, int family, const char *ipstr, const uint16_t port);
-enum reply_code ftp_EPSV(int sockfd, const uint16_t port);
+enum reply_code ftp_EPSV(int sockfd, struct vector *out_msg);
 
 #endif /* FTPC_FTP_H */
