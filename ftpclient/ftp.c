@@ -30,6 +30,7 @@
 #include "log.h"
 #include "vector.h"
 
+/* Socket buffer for the PI. */
 static struct sockbuf pi_buf = {0};
 
 /*
@@ -425,11 +426,13 @@ enum reply_code wait_for_reply(const int sockfd, struct vector *out_msg) {
     reply_code_buf[3] = '\0';
     struct vector reply_msg;
     vector_create(&reply_msg, 64, 2);
+
     /* Get first 3 characters to get reply code */
     for (int i = 0; i < 3; i++) {
         reply_code_buf[i] = pi_getchar(sockfd);
     }
     enum reply_code code = atoi(reply_code_buf);
+
     /* Parse reply text */
     if (pi_getchar(sockfd) == '-') {
         parse_multi_line_reply(&reply_msg, sockfd, code);
@@ -442,6 +445,7 @@ enum reply_code wait_for_reply(const int sockfd, struct vector *out_msg) {
         vector_append(out_msg, '\0');
     }
     vector_free(&reply_msg);
+
     /* Handle FTP_SERVER_NA here since this should always mean the client
        should quit */
     if (code == FTP_SERVER_NA) {
