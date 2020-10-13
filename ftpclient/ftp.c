@@ -236,7 +236,7 @@ static int do_PORT(int sockpi, pthread_t *tid, const char *ipstr) {
         goto err;
     }
     struct sockaddr saddr_myport;
-    socklen_t len;
+    socklen_t len = sizeof saddr_myport;
     if (getsockname(*socklisten, &saddr_myport, &len) < 0) {
         perror("getsockname");
         goto err;
@@ -262,13 +262,67 @@ static int do_PORT(int sockpi, pthread_t *tid, const char *ipstr) {
 
     return 0;
     err:
-    if (*socklisten < 0)
+    if (*socklisten >= 0)
         close(*socklisten);
     free(socklisten);
     return -1;
 }
 
-static int do_EPRT(int sockpi, int sockdtp) {
+static int do_EPRT(int sockpi, pthread_t *tid, const char *ipstr) {
+    const int af = strchr(ipstr, ':') ? AF_INET6 : AF_INET;
+    /* Listen and get the port we are listening on */
+    int *socklisten = malloc(sizeof *socklisten);
+    if (!socklisten) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    *socklisten = socket(af, SOCK_STREAM, IPPROTO_TCP);
+    if (*socklisten < 0) {
+        perror("socket");
+        logwarn("Failed to create listen socket");
+        goto err;
+    }
+    if (listen(*socklisten, 1) < 0) {
+        perror("listen");
+        goto err;
+    }
+    struct sockaddr saddr_myport;
+    socklen_t len = sizeof saddr_myport;
+    if (getsockname(*socklisten, &saddr_myport, &len) < 0) {
+        perror("getsockname");
+        goto err;
+    }
+    uint16_t port;
+    switch (af) {
+        case AF_INET:
+            port = ntohs(((struct sockaddr_in *)&saddr_myport)->sin_port);
+            break;
+        case AF_INET6:
+            port = ntohs(((struct sockaddr_in6 *)&saddr_myport)->sin6_port);
+            break;
+    }
+
+    /* Start waiting for connections */
+    if (pthread_create(tid, NULL, accept_connection, socklisten)) {
+        logerr("Failed to create a thread for accepting connections");
+        goto err;
+    }
+
+    /* Send EPRT and wait for reply */
+    enum reply_code reply = ftp_EPRT(sockpi, af, ipstr, port);
+    if (ftp_pos_completion(reply)) {
+        puts("EPRT OK");
+    } else {
+        puts("Error executing command. See log");
+        pthread_cancel(*tid);
+        goto err;
+    }
+
+    return 0;
+    err:
+    if (*socklisten >= 0)
+        close(*socklisten);
+    free(socklisten);
     return -1;
 }
 
@@ -296,7 +350,7 @@ int accept_server(int sockpi, unsigned int delivery_option, pthread_t *tid) {
         return -1;
     }
 
-    /* Get ip string */
+    /* Get my IP string */
     char ipstr[INET6_ADDRSTRLEN];
     switch (myaddr.sa_family) {
         case AF_INET:
@@ -312,8 +366,9 @@ int accept_server(int sockpi, unsigned int delivery_option, pthread_t *tid) {
             return -1;
         }
     } else {
-        // tid = do_EPRT(sockpi, ipstr);
-        return -1;
+        if (do_EPRT(sockpi, tid, ipstr) < 0) {
+            return -1;
+        }
     }
     return 0;
 }
