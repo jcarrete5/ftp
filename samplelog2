@@ -1,0 +1,118 @@
+~~~~~~~~~~ session start ~~~~~~~~~~
+ftpc 1.0.0
+Tue Oct 13 12:22:44 2020 [INFO] Trying ::1
+Tue Oct 13 12:22:44 2020 [WARN] Failed to connect to ::1; trying another address
+Tue Oct 13 12:22:44 2020 [INFO] Trying 127.0.0.1
+Tue Oct 13 12:22:44 2020 [INFO] Connected to 127.0.0.1
+Tue Oct 13 12:22:44 2020 [INFO] Received: 220 (vsFTPd 3.0.3)
+Tue Oct 13 12:22:49 2020 [INFO] Sent: USER buddy
+Tue Oct 13 12:22:49 2020 [INFO] Received: 331 Please specify the password.
+Tue Oct 13 12:22:50 2020 [INFO] Sent: PASS password
+Tue Oct 13 12:22:50 2020 [INFO] Received: 230 Login successful.
+Tue Oct 13 12:22:53 2020 [INFO] Sent: SYST
+Tue Oct 13 12:22:53 2020 [INFO] Received: 215 UNIX Type: L8
+Tue Oct 13 12:22:56 2020 [INFO] Sent: PWD
+Tue Oct 13 12:22:56 2020 [INFO] Received: 257 "/" is the current directory
+Tue Oct 13 12:23:05 2020 [INFO] Sent: HELP
+Tue Oct 13 12:23:05 2020 [INFO] Received: 214 The following commands are recognized.
+ ABOR ACCT ALLO APPE CDUP CWD  DELE EPRT EPSV FEAT HELP LIST MDTM MKD
+ MODE NLST NOOP OPTS PASS PASV PORT PWD  QUIT REIN REST RETR RMD  RNFR
+ RNTO SITE SIZE SMNT STAT STOR STOU STRU SYST TYPE USER XCUP XCWD XMKD
+ XPWD XRMD
+214 Help OK.
+Tue Oct 13 12:23:08 2020 [INFO] Sent: PASV
+Tue Oct 13 12:23:08 2020 [INFO] Received: 227 Entering Passive Mode (127,0,0,1,158,12).
+Tue Oct 13 12:23:08 2020 [INFO] Sent: LIST
+Tue Oct 13 12:23:08 2020 [INFO] Received: 150 Here comes the directory listing.
+Tue Oct 13 12:23:08 2020 [INFO] Received: 226 Directory send OK.
+Tue Oct 13 12:23:12 2020 [INFO] Sent: PORT 127,0,0,1,202,201
+Tue Oct 13 12:23:12 2020 [INFO] Waiting for a connection to user-DTP
+Tue Oct 13 12:23:12 2020 [INFO] Received: 200 PORT command successful. Consider using PASV.
+Tue Oct 13 12:23:12 2020 [INFO] Sent: LIST
+Tue Oct 13 12:23:12 2020 [INFO] Got for a connection to user-DTP
+Tue Oct 13 12:23:12 2020 [INFO] Received: 150 Here comes the directory listing.
+Tue Oct 13 12:23:12 2020 [INFO] Received: 226 Directory send OK.
+Tue Oct 13 12:23:18 2020 [INFO] Sent: ESPV
+Tue Oct 13 12:23:18 2020 [INFO] Received: 229 Entering Extended Passive Mode (|||40459|)
+Tue Oct 13 12:23:18 2020 [INFO] Sent: LIST
+Tue Oct 13 12:23:18 2020 [INFO] Received: 150 Here comes the directory listing.
+Tue Oct 13 12:23:18 2020 [INFO] Received: 226 Directory send OK.
+Tue Oct 13 12:23:29 2020 [INFO] Sent: EPRT |1|127.0.0.1|43111|
+Tue Oct 13 12:23:29 2020 [INFO] Waiting for a connection to user-DTP
+Tue Oct 13 12:23:29 2020 [INFO] Received: 200 EPRT command successful. Consider using EPSV.
+Tue Oct 13 12:23:29 2020 [INFO] Sent: LIST
+Tue Oct 13 12:23:29 2020 [INFO] Got for a connection to user-DTP
+Tue Oct 13 12:23:29 2020 [INFO] Received: 150 Here comes the directory listing.
+Tue Oct 13 12:23:29 2020 [INFO] Received: 226 Directory send OK.
+Tue Oct 13 12:23:46 2020 [INFO] Sent: EPRT |1|127.0.0.1|47557|
+Tue Oct 13 12:23:46 2020 [INFO] Waiting for a connection to user-DTP
+Tue Oct 13 12:23:46 2020 [INFO] Received: 200 EPRT command successful. Consider using EPSV.
+Tue Oct 13 12:23:46 2020 [INFO] Sent: RETR rfc959.pdf
+Tue Oct 13 12:23:46 2020 [INFO] Got for a connection to user-DTP
+Tue Oct 13 12:23:46 2020 [INFO] Received: 150 Opening BINARY mode data connection for rfc959.pdf (144223 bytes).
+Tue Oct 13 12:23:46 2020 [INFO] Received: 226 Transfer complete.
+Tue Oct 13 12:23:58 2020 [INFO] Sent: ESPV
+Tue Oct 13 12:23:58 2020 [INFO] Received: 229 Entering Extended Passive Mode (|||40937|)
+Tue Oct 13 12:23:58 2020 [INFO] Sent: RETR rfc959.pdf
+Tue Oct 13 12:23:58 2020 [INFO] Received: 150 Opening BINARY mode data connection for rfc959.pdf (144223 bytes).
+Tue Oct 13 12:23:58 2020 [INFO] Received: 226 Transfer complete.
+Tue Oct 13 12:24:08 2020 [INFO] Sent: PASV
+Tue Oct 13 12:24:08 2020 [INFO] Received: 227 Entering Passive Mode (127,0,0,1,158,123).
+Tue Oct 13 12:24:08 2020 [INFO] Sent: RETR rfc959.pdf
+Tue Oct 13 12:24:08 2020 [INFO] Received: 150 Opening BINARY mode data connection for rfc959.pdf (144223 bytes).
+Tue Oct 13 12:24:08 2020 [INFO] Received: 226 Transfer complete.
+Tue Oct 13 12:24:30 2020 [INFO] Sent: PORT 127,0,0,1,235,185
+Tue Oct 13 12:24:30 2020 [INFO] Waiting for a connection to user-DTP
+Tue Oct 13 12:24:30 2020 [INFO] Received: 200 PORT command successful. Consider using PASV.
+Tue Oct 13 12:24:30 2020 [INFO] Sent: STOR anothafile.pdf
+Tue Oct 13 12:24:30 2020 [INFO] Got for a connection to user-DTP
+Tue Oct 13 12:24:30 2020 [INFO] Received: 150 Ok to send data.
+Tue Oct 13 12:24:30 2020 [INFO] Received: 226 Transfer complete.
+Tue Oct 13 12:24:45 2020 [INFO] Sent: PORT 127,0,0,1,231,33
+Tue Oct 13 12:24:45 2020 [INFO] Waiting for a connection to user-DTP
+Tue Oct 13 12:24:45 2020 [INFO] Received: 200 PORT command successful. Consider using PASV.
+Tue Oct 13 12:24:45 2020 [INFO] Sent: LIST
+Tue Oct 13 12:24:45 2020 [INFO] Got for a connection to user-DTP
+Tue Oct 13 12:24:45 2020 [INFO] Received: 150 Here comes the directory listing.
+Tue Oct 13 12:24:45 2020 [INFO] Received: 226 Directory send OK.
+Tue Oct 13 12:24:47 2020 [INFO] Sent: CWD test
+Tue Oct 13 12:24:47 2020 [INFO] Received: 250 Directory successfully changed.
+Tue Oct 13 12:24:48 2020 [INFO] Sent: PORT 127,0,0,1,151,227
+Tue Oct 13 12:24:48 2020 [INFO] Waiting for a connection to user-DTP
+Tue Oct 13 12:24:48 2020 [INFO] Received: 200 PORT command successful. Consider using PASV.
+Tue Oct 13 12:24:48 2020 [INFO] Sent: LIST
+Tue Oct 13 12:24:48 2020 [INFO] Got for a connection to user-DTP
+Tue Oct 13 12:24:48 2020 [INFO] Received: 150 Here comes the directory listing.
+Tue Oct 13 12:24:48 2020 [INFO] Received: 226 Directory send OK.
+Tue Oct 13 12:24:53 2020 [INFO] Sent: CWD ..
+Tue Oct 13 12:24:53 2020 [INFO] Received: 250 Directory successfully changed.
+Tue Oct 13 12:25:08 2020 [INFO] Sent: PORT 127,0,0,1,185,97
+Tue Oct 13 12:25:08 2020 [INFO] Waiting for a connection to user-DTP
+Tue Oct 13 12:25:08 2020 [INFO] Received: 200 PORT command successful. Consider using PASV.
+Tue Oct 13 12:25:08 2020 [INFO] Sent: STOR test/out.pdf
+Tue Oct 13 12:25:08 2020 [INFO] Got for a connection to user-DTP
+Tue Oct 13 12:25:08 2020 [INFO] Received: 150 Ok to send data.
+Tue Oct 13 12:25:08 2020 [INFO] Received: 226 Transfer complete.
+Tue Oct 13 12:25:10 2020 [INFO] Sent: CWD test
+Tue Oct 13 12:25:10 2020 [INFO] Received: 250 Directory successfully changed.
+Tue Oct 13 12:25:12 2020 [INFO] Sent: PORT 127,0,0,1,201,157
+Tue Oct 13 12:25:12 2020 [INFO] Waiting for a connection to user-DTP
+Tue Oct 13 12:25:12 2020 [INFO] Received: 200 PORT command successful. Consider using PASV.
+Tue Oct 13 12:25:12 2020 [INFO] Sent: LIST
+Tue Oct 13 12:25:12 2020 [INFO] Got for a connection to user-DTP
+Tue Oct 13 12:25:12 2020 [INFO] Received: 150 Here comes the directory listing.
+Tue Oct 13 12:25:12 2020 [INFO] Received: 226 Directory send OK.
+Tue Oct 13 12:25:13 2020 [INFO] Sent: CWD ..
+Tue Oct 13 12:25:13 2020 [INFO] Received: 250 Directory successfully changed.
+Tue Oct 13 12:25:15 2020 [INFO] Sent: PORT 127,0,0,1,189,89
+Tue Oct 13 12:25:15 2020 [INFO] Waiting for a connection to user-DTP
+Tue Oct 13 12:25:15 2020 [INFO] Received: 200 PORT command successful. Consider using PASV.
+Tue Oct 13 12:25:15 2020 [INFO] Sent: LIST test
+Tue Oct 13 12:25:15 2020 [INFO] Got for a connection to user-DTP
+Tue Oct 13 12:25:15 2020 [INFO] Received: 150 Here comes the directory listing.
+Tue Oct 13 12:25:15 2020 [INFO] Received: 226 Directory send OK.
+Tue Oct 13 12:25:27 2020 [INFO] Sent: QUIT
+Tue Oct 13 12:25:27 2020 [INFO] Received: 221 Goodbye.
+Tue Oct 13 12:25:27 2020 [INFO] Closing user-PI socket
+~~~~~~~~~~~ session end ~~~~~~~~~~~
+

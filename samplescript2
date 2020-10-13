@@ -1,0 +1,222 @@
+Script started on 2020-10-13 12:22:27-04:00 [TERM="xterm-256color" TTY="/dev/pts/0" COLUMNS="115" LINES="15"]
+]0;jasonc@jasonc-desktop:~/school/cs472[[32mjasonc[0m@[31mjasonc-desktop[0m cs472]$ ./build/out/bin/ftpc localhost log
+ftpc 1.0.0
+Connected to 127.0.0.1
+Server is ready
+Username: buddy
+Username OK
+Password: password
+Password OK
+> system
+UNIX Type: L8
+> pwd
+"/" is the current directory
+> cwd
+Unknown command
+> cd
+A path must be specified
+> help
+The following commands are recognized.
+
+ ABOR ACCT ALLO APPE CDUP CWD  DELE EPRT EPSV FEAT HELP LIST MDTM MKD
+
+ MODE NLST NOOP OPTS PASS PASV PORT PWD  QUIT REIN REST RETR RMD  RNFR
+
+ RNTO SITE SIZE SMNT STAT STOR STOU STRU SYST TYPE USER XCUP XCWD XMKD
+
+ XPWD XRMD
+
+214 Help OK.
+> ls
+Entering Passive Mode (127,0,0,1,158,12).
+Here comes the directory listing.
+-rw-r--r--    1 1001     985             7 Oct 12 00:46 file.txt
+
+-rw-------    1 1001     985            23 Oct 12 02:07 file2.txt
+
+-rw-------    1 1001     985        147456 Oct 13 06:31 hoopla.pdf
+
+-rw-------    1 1001     985            23 Oct 12 02:03 ooafile.txt
+
+-rw-------    1 1001     985          8192 Oct 13 02:24 ooo.txt
+
+-rw-------    1 1001     985        147456 Oct 13 02:22 out.pdf
+
+-rw-------    1 1001     985        147456 Oct 13 15:36 out2.pdf
+
+-rw-------    1 1001     985        147456 Oct 12 16:06 rfc-copy.pdf
+
+-rw-r--r--    1 1001     1001       144223 Oct 12 02:42 rfc959.pdf
+
+drwxr-xr-x    2 1001     0            4096 Oct 11 21:08 test
+
+Directory send OK.
+> passive
+PORT before data transfer is enabled
+> ls
+PORT OK
+Here comes the directory listing.
+-rw-r--r--    1 1001     985             7 Oct 12 00:46 file.txt
+
+-rw-------    1 1001     985            23 Oct 12 02:07 file2.txt
+
+-rw-------    1 1001     985        147456 Oct 13 06:31 hoopla.pdf
+
+-rw-------    1 1001     985            23 Oct 12 02:03 ooafile.txt
+
+-rw-------    1 1001     985          8192 Oct 13 02:24 ooo.txt
+
+-rw-------    1 1001     985        147456 Oct 13 02:22 out.pdf
+
+-rw-------    1 1001     985        147456 Oct 13 15:36 out2.pdf
+
+-rw-------    1 1001     985        147456 Oct 12 16:06 rfc-copy.pdf
+
+-rw-r--r--    1 1001     1001       144223 Oct 12 02:42 rfc959.pdf
+
+drwxr-xr-x    2 1001     0            4096 Oct 11 21:08 test
+
+Directory send OK.
+> passive
+PASV before data transfer is enabled
+> extend
+EPSV before data transfer is enabled
+> ls
+Entering Extended Passive Mode (|||40459|)
+Here comes the directory listing.
+-rw-r--r--    1 1001     985             7 Oct 12 00:46 file.txt
+
+-rw-------    1 1001     985            23 Oct 12 02:07 file2.txt
+
+-rw-------    1 1001     985        147456 Oct 13 06:31 hoopla.pdf
+
+-rw-------    1 1001     985            23 Oct 12 02:03 ooafile.txt
+
+-rw-------    1 1001     985          8192 Oct 13 02:24 ooo.txt
+
+-rw-------    1 1001     985        147456 Oct 13 02:22 out.pdf
+
+-rw-------    1 1001     985        147456 Oct 13 15:36 out2.pdf
+
+-rw-------    1 1001     985        147456 Oct 12 16:06 rfc-copy.pdf
+
+-rw-r--r--    1 1001     1001       144223 Oct 12 02:42 rfc959.pdf
+
+drwxr-xr-x    2 1001     0            4096 Oct 11 21:08 test
+
+Directory send OK.
+> passive
+EPRT before data transfer is enabled
+> ls
+EPRT OK
+Here comes the directory listing.
+-rw-r--r--    1 1001     985             7 Oct 12 00:46 file.txt
+
+-rw-------    1 1001     985            23 Oct 12 02:07 file2.txt
+
+-rw-------    1 1001     985        147456 Oct 13 06:31 hoopla.pdf
+
+-rw-------    1 1001     985            23 Oct 12 02:03 ooafile.txt
+
+-rw-------    1 1001     985          8192 Oct 13 02:24 ooo.txt
+
+-rw-------    1 1001     985        147456 Oct 13 02:22 out.pdf
+
+-rw-------    1 1001     985        147456 Oct 13 15:36 out2.pdf
+
+-rw-------    1 1001     985        147456 Oct 12 16:06 rfc-copy.pdf
+
+-rw-r--r--    1 1001     1001       144223 Oct 12 02:42 rfc959.pdf
+
+drwxr-xr-x    2 1001     0            4096 Oct 11 21:08 test
+
+Directory send OK.
+> get rfc959.pdf  
+Save location: rfc.pdf
+EPRT OK
+Opening BINARY mode data connection for rfc959.pdf (144223 bytes).
+Transfer complete.
+> passive
+EPSV before data transfer is enabled
+> get rfc959.pdf
+Save location: out.pdf
+Entering Extended Passive Mode (|||40937|)
+Opening BINARY mode data connection for rfc959.pdf (144223 bytes).
+Transfer complete.
+> extend
+PASV before data transfer is enabled
+> get rfc959.pdf
+Save location: out.pdf
+Entering Passive Mode (127,0,0,1,158,123).
+Opening BINARY mode data connection for rfc959.pdf (144223 bytes).
+Transfer complete.
+> extend      passive
+PORT before data transfer is enabled
+> send out.pdf  
+Save location (on server): anothafile.pdf
+PORT OK
+Ok to send data.
+Transfer complete.
+> ls
+PORT OK
+Here comes the directory listing.
+-rw-------    1 1001     985        147456 Oct 13 16:24 anothafile.pdf
+
+-rw-r--r--    1 1001     985             7 Oct 12 00:46 file.txt
+
+-rw-------    1 1001     985            23 Oct 12 02:07 file2.txt
+
+-rw-------    1 1001     985        147456 Oct 13 06:31 hoopla.pdf
+
+-rw-------    1 1001     985            23 Oct 12 02:03 ooafile.txt
+
+-rw-------    1 1001     985          8192 Oct 13 02:24 ooo.txt
+
+-rw-------    1 1001     985        147456 Oct 13 02:22 out.pdf
+
+-rw-------    1 1001     985        147456 Oct 13 15:36 out2.pdf
+
+-rw-------    1 1001     985        147456 Oct 12 16:06 rfc-copy.pdf
+
+-rw-r--r--    1 1001     1001       144223 Oct 12 02:42 rfc959.pdf
+
+drwxr-xr-x    2 1001     0            4096 Oct 11 21:08 test
+
+Directory send OK.
+> cd test
+Directory change OK
+> ls
+PORT OK
+Here comes the directory listing.
+-rw-r--r--    1 1001     985            31 Oct 11 21:08 otherfile.txt
+
+Directory send OK.
+> cd ..
+Directory change OK
+> send rfc.pdf
+Save location (on server): test/out.pdf
+PORT OK
+Ok to send data.
+Transfer complete.
+> cd test
+Directory change OK
+> ls
+PORT OK
+Here comes the directory listing.
+-rw-r--r--    1 1001     985            31 Oct 11 21:08 otherfile.txt
+
+-rw-------    1 1001     985        147456 Oct 13 16:25 out.pdf
+
+Directory send OK.
+> cd ..
+Directory change OK
+> ls test
+PORT OK
+Here comes the directory listing.
+-rw-r--r--    1 1001     985            31 Oct 11 21:08 otherfile.txt
+
+-rw-------    1 1001     985        147456 Oct 13 16:25 out.pdf
+
+Directory send OK.
+> quit
+Script done on 2020-10-13 12:28:09-04:00 [COMMAND_EXIT_CODE="0"]
