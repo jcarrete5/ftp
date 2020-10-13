@@ -21,12 +21,13 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <regex.h>
+#include <pthread.h>
 #include <errno.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "ftp.h"
 #include "log.h"
-#include "repl.h"
 #include "vector.h"
 
 static struct sockbuf pi_buf = {0};
@@ -66,12 +67,29 @@ static char pi_getchar(int sockfd) {
     }
 }
 
+/* Thread function to accept a connection and return the connecting socket. */
+static void *accept_connection(void *arg) {
+    int *socklisten = (int *)arg;
+    int *sockdtp = malloc(sizeof *sockdtp);
+    if (!sockdtp) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    loginfo("Waiting for a connection to user-DTP");
+    *sockdtp = accept(*socklisten, NULL, NULL);
+    loginfo("Got for a connection to user-DTP");
+    close(*socklisten);
+    free(socklisten);
+    return sockdtp;
+}
+
 /* Set the socket address to connect to when the server is in passive mode. */
-static void set_remote_sockaddr
+static void parse_remote_sockaddr
 (const char *msg, struct sockaddr_storage *addr, socklen_t *addrlen)
 {
     assert(addr);
     assert(addrlen);
+
     /* Making a potentially dangerous assumption here that msg is fine */
     char msg_copy[strlen(msg)+1];
     strcpy(msg_copy, msg);
@@ -86,10 +104,12 @@ static void set_remote_sockaddr
         strcat(ipv4, ".");
     }
     ipv4[strlen(ipv4)-1] = '\0';
+
     /* Combine most and least significant byte to form port */
     int msb = atoi(token);
     int lsb = atoi(strtok(NULL, ","));
     in_port_t port = (msb << 8) | lsb;
+
     /* Create sockaddr */
     *addrlen = sizeof(struct sockaddr_in);
     memset(addr, 0, *addrlen);
@@ -98,44 +118,146 @@ static void set_remote_sockaddr
     inet_pton(AF_INET, ipv4, &((struct sockaddr_in *)addr)->sin_addr);
 }
 
-/* Connect to server-DTP. */
-int connect_to_dtp(int sockpi, unsigned int delivery_option) {
+static int do_PASV(int sockpi) {
+    struct sockaddr_storage addr;
+    struct vector reply_msg;
+    vector_create(&reply_msg, 128, 2);
     int sockdtp = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockdtp < 0) {
         perror("socket");
         logwarn("Failed to open data connection to the server");
-        return -1;
+        sockdtp = -1;
+        goto exit;
     }
-    enum reply_code reply;
-    struct vector reply_msg;
-    vector_create(&reply_msg, 128, 2);
-    switch (delivery_option) {
-        case FTPC_DO_PASV:
-            reply = ftp_PASV(sockpi, &reply_msg);
-            struct sockaddr_storage addr;
-            socklen_t addrlen;
-            if (ftp_pos_completion(reply)) {
-                set_remote_sockaddr(reply_msg.arr, &addr, &addrlen);
-                puts(reply_msg.arr);
-            } else {
-                puts("Error executing command. See log");
-                sockdtp = -1;
-            }
-            if (connect(sockdtp, (struct sockaddr *)&addr, addrlen) < 0) {
-                perror("connect");
-                logwarn("Failed to connect to server-DTP");
-                sockdtp = -1;
-            }
-            break;
-        case FTPC_DO_PORT:
-            /* TODO implement random PORT */
-        default:
-            puts("Delivery option not implemented");
-            sockdtp = -1;
-            break;
+
+    /* Send PASV and wait for reply */
+    enum reply_code code = ftp_PASV(sockpi, &reply_msg);
+    socklen_t addrlen;
+    if (ftp_pos_completion(code)) {
+        parse_remote_sockaddr(reply_msg.arr, &addr, &addrlen);
+        puts(reply_msg.arr);
+    } else {
+        puts("Error executing command. See log");
+        close(sockdtp);
+        sockdtp = -1;
+        goto exit;
     }
+
+    /* Connect to server-DTP */
+    if (connect(sockdtp, (struct sockaddr *)&addr, addrlen) < 0) {
+        perror("connect");
+        logwarn("Failed to connect to server-DTP");
+        close(sockdtp);
+        sockdtp = -1;
+        goto exit;
+    }
+
+    exit:
     vector_free(&reply_msg);
     return sockdtp;
+}
+
+static void do_EPSV(int sockpi) {
+
+}
+
+static int do_PORT(int sockpi, pthread_t *tid, const char *ipstr) {
+    /* Listen and get the port we are listening on */
+    int *socklisten = malloc(sizeof *socklisten);
+    if (!socklisten) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    *socklisten = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (*socklisten < 0) {
+        perror("socket");
+        logwarn("Failed to create listen socket");
+        goto err;
+    }
+    if (listen(*socklisten, 1) < 0) {
+        perror("listen");
+        goto err;
+    }
+    struct sockaddr saddr_myport;
+    socklen_t len;
+    if (getsockname(*socklisten, &saddr_myport, &len) < 0) {
+        perror("getsockname");
+        goto err;
+    }
+    struct sockaddr_in *myport = (struct sockaddr_in *)&saddr_myport;
+    uint16_t port = htons(myport->sin_port);
+    printf("%s:%"PRIu16"\n", ipstr, port);
+
+    /* Start waiting for connections */
+    if (pthread_create(tid, NULL, accept_connection, socklisten)) {
+        logerr("Failed to create a thread for accepting connections");
+        goto err;
+    }
+
+    /* Send PORT and wait for reply */
+    enum reply_code reply = ftp_PORT(sockpi, ipstr, port);
+    if (ftp_pos_completion(reply)) {
+        puts("PORT OK");
+    } else {
+        puts("Error executing command. See log");
+        pthread_cancel(*tid);
+        goto err;
+    }
+
+    return 0;
+    err:
+    if (*socklisten < 0)
+        close(*socklisten);
+    free(socklisten);
+    return -1;
+}
+
+static void do_EPRT(int sockpi, int sockdtp) {
+
+}
+
+/* Connect to server-DTP. */
+int connect_to_dtp(int sockpi, unsigned int delivery_option) {
+    assert((delivery_option & FTPC_DO_PASV) == 1);
+    int sockdtp;
+    if ((delivery_option & FTPC_DO_EXT) == 0) {
+        sockdtp = do_PASV(sockpi);
+    } else {
+        // sockdtp = do_EPSV(sockpi);
+    }
+    return sockdtp;
+}
+
+/* Start a thread waiting for server connection. */
+int accept_server(int sockpi, unsigned int delivery_option, pthread_t *tid) {
+    assert((delivery_option & FTPC_DO_PASV) == 0);
+    struct sockaddr myaddr;
+    socklen_t saddrlen;
+    if (getsockname(sockpi, &myaddr, &saddrlen) < 0) {
+        perror("getsockname");
+        logerr("Failed to get bound IP of sockpi");
+        return -1;
+    }
+
+    /* Get ip string */
+    char ipstr[INET6_ADDRSTRLEN];
+    switch (myaddr.sa_family) {
+        case AF_INET:
+            inet_ntop(myaddr.sa_family, &((struct sockaddr_in *)&myaddr)->sin_addr, ipstr, saddrlen);
+            break;
+        case AF_INET6:
+            inet_ntop(myaddr.sa_family, &((struct sockaddr_in6 *)&myaddr)->sin6_addr, ipstr, saddrlen);
+            break;
+    }
+
+    if ((delivery_option & FTPC_DO_EXT) == 0) {
+        if (do_PORT(sockpi, tid, ipstr) < 0) {
+            return -1;
+        }
+    } else {
+        // tid = do_EPRT(sockpi, ipstr);
+    }
+    return 0;
 }
 
 /* Parse multi-line reply from FTP Server. */
@@ -325,7 +447,7 @@ enum reply_code ftp_CWD(int sockfd, const char *path) {
     return wait_for_reply(sockfd, NULL);
 }
 
-/* Send a PORT request and await a reply. */
+/* Send a PORT request and await a reply. port is network-byte-order. */
 enum reply_code ftp_PORT(int sockfd, const char *ipstr, uint16_t port) {
     char ipstr_copy[strlen(ipstr) + 1];
     strcpy(ipstr_copy, ipstr);

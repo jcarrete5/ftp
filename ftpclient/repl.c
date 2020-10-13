@@ -155,14 +155,36 @@ static void handle_system(void) {
 
 /* Handle ls repl command. */
 static void handle_ls(const char *path) {
+    const bool rpassive = (delivery_option & FTPC_DO_PASV) == 1;
+
+    /* Connect to or wait for server */
+    enum reply_code reply;
     struct vector reply_msg;
     vector_create(&reply_msg, 128, 2);
-    int sockdtp = connect_to_dtp(sockpi, delivery_option);
-    if (sockdtp < 0) {
-        goto exit;
+    int sockdtp = -1;
+    if (rpassive) {
+        sockdtp = connect_to_dtp(sockpi, delivery_option);
+        if (sockdtp < 0) {
+            goto exit;
+        }
+        reply = ftp_LIST(sockpi, path, &reply_msg);
+    } else {
+        pthread_t tid;
+        if (accept_server(sockpi, delivery_option, &tid) < 0) {
+            logerr("Error during accept_server");
+            goto exit;
+        }
+        reply = ftp_LIST(sockpi, path, &reply_msg);
+        int *ret;
+        if (pthread_join(tid, (void **)&ret)) {
+            logerr("Error waiting for thread in join");
+            goto exit;
+        }
+        sockdtp = *ret;
+        free(ret);
     }
-    /* Send LIST command */
-    enum reply_code reply = ftp_LIST(sockpi, path, &reply_msg);
+
+    /* Parse reply */
     while (ftp_pos_preliminary(reply)) {
         puts(reply_msg.arr);
         reply_msg.size = 0;
@@ -171,7 +193,7 @@ static void handle_ls(const char *path) {
     if (ftp_pos_completion(reply) || ftp_trans_neg(reply)) {
         int ch;
         /* Read stream of bytes from server-DTP */
-        while ((ch = getchar_from_sock(sockdtp, &dtp_buf))) {
+        while ((ch=getchar_from_sock(sockdtp, &dtp_buf))) {
             if (ch < 0) {
                 perror("recv");
                 logerr("Error while reading from server-DTP");
@@ -184,8 +206,10 @@ static void handle_ls(const char *path) {
     } else {
         puts("Error executing command. See log");
     }
+
     exit:
-    close(sockdtp);
+    if (sockdtp >= 0)
+        close(sockdtp);
     vector_free(&reply_msg);
 }
 
@@ -203,9 +227,8 @@ static void handle_cd(const char *path) {
     }
 }
 
-/* Handle passive repl command. */
-static void handle_passive(void) {
-    delivery_option ^= FTPC_DO_PASV;
+/* Print the delivery options as a string. */
+static void print_delivery_opt(void) {
     switch (delivery_option) {
         case FTPC_DO_PASV:
             puts("PASV before data transfer is enabled");
@@ -222,22 +245,14 @@ static void handle_passive(void) {
     }
 }
 
+static void handle_passive(void) {
+    delivery_option ^= FTPC_DO_PASV;
+    print_delivery_opt();
+}
+
 static void handle_extend(void) {
     delivery_option ^= FTPC_DO_EXT;
-    switch (delivery_option) {
-        case FTPC_DO_PASV:
-            puts("PASV before data transfer is enabled");
-            break;
-        case FTPC_DO_EPSV:
-            puts("EPSV before data transfer is enabled");
-            break;
-        case FTPC_DO_PORT:
-            puts("PORT before data transfer is enabled");
-            break;
-        case FTPC_DO_EPRT:
-            puts("EPRT before data transfer is enabled");
-            break;
-    }
+    print_delivery_opt();
 }
 
 /* Handle get repl command. path points to a remote file. */
@@ -246,25 +261,54 @@ static void handle_get(const char *path) {
         puts("Path must not be NULL");
         return;
     }
+    pthread_t t_id;
+    const bool rpassive = (delivery_option & FTPC_DO_PASV) == 1;
+    int sockdtp = -1;
+    struct vector reply_msg;
+    vector_create(&reply_msg, 128, 2);
+    uint8_t *databuf = calloc(BUFSIZ, sizeof *databuf);
+    if (!databuf) {
+        perror("calloc");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Ask for file save location */
+    printf("Save location: ");
     struct vector in;
     vector_create(&in, 128, 2);
-    uint8_t *databuf = calloc(BUFSIZ, sizeof *databuf);
-    printf("Save location: ");
     get_input_str(&in);
     FILE *file = fopen(in.arr, "w");
-    in.size = 0;
     vector_free(&in);
     if (!file) {
         perror("fopen");
-        return;
-    }
-    int sockdtp = connect_to_dtp(sockpi, delivery_option);
-    if (sockdtp < 0) {
         goto exit;
     }
-    struct vector reply_msg;
-    vector_create(&reply_msg, 128, 2);
-    enum reply_code reply = ftp_RETR(sockpi, path, &reply_msg);
+
+    /* Connect to or wait for server */
+    enum reply_code reply;
+    if (rpassive) {
+        sockdtp = connect_to_dtp(sockpi, delivery_option);
+        if (sockdtp < 0) {
+            goto exit;
+        }
+        reply = ftp_RETR(sockpi, path, &reply_msg);
+    } else {
+        pthread_t tid;
+        if (accept_server(sockpi, delivery_option, &tid) < 0) {
+            logerr("Error during accept_server");
+            goto exit;
+        }
+        reply = ftp_RETR(sockpi, path, &reply_msg);
+        int *ret;
+        if (pthread_join(tid, (void **)&ret)) {
+            logerr("Error waiting for thread in join");
+            goto exit;
+        }
+        sockdtp = *ret;
+        free(ret);
+    }
+
+    /* Parse reply and collect data from DTP */
     while (ftp_pos_preliminary(reply)) {
         puts(reply_msg.arr);
         reply_msg.size = 0;
@@ -285,10 +329,13 @@ static void handle_get(const char *path) {
         reply = wait_for_reply(sockpi, &reply_msg);
     }
     puts(reply_msg.arr);
+
     exit:
     free(databuf);
-    fclose(file);
-    close(sockdtp);
+    if (sockdtp >= 0)
+        close(sockdtp);
+    if (file)
+        fclose(file);
     vector_free(&reply_msg);
 }
 
@@ -299,24 +346,50 @@ static void handle_send(const char *localpath) {
         puts("Path must not be NULL");
         return;
     }
+    struct vector in, reply_msg;
+    vector_create(&in, 128, 2);
+    vector_create(&reply_msg, 128, 2);
+    const bool rpassive = (delivery_option & FTPC_DO_PASV) == 1;
+    int sockdtp = -1;
+    uint8_t *databuf = calloc(BUFSIZ, sizeof *databuf);
+    if (!databuf) {
+        perror("calloc");
+        exit(EXIT_FAILURE);
+    }
     FILE *in_file = fopen(localpath, "r");
     if (!in_file) {
         perror("fopen");
-        return;
+        goto exit;
     }
-    uint8_t *databuf = calloc(BUFSIZ, sizeof *databuf);
-    struct vector in;
-    vector_create(&in, 128, 2);
+
     /* Read save location */
     printf("Save location (on server): ");
     get_input_str(&in);
-    int sockdtp = connect_to_dtp(sockpi, delivery_option);
-    if (sockdtp < 0) {
-        goto exit;
+
+    /* Connect to or wait for reply server */
+    enum reply_code reply;
+    if (rpassive) {
+        sockdtp = connect_to_dtp(sockpi, delivery_option);
+        if (sockdtp < 0) {
+            goto exit;
+        }
+        reply = ftp_STOR(sockpi, in.arr, &reply_msg);
+    } else {
+        pthread_t tid;
+        if (accept_server(sockpi, delivery_option, &tid) < 0) {
+            logerr("Error during accept_server");
+            goto exit;
+        }
+        reply = ftp_STOR(sockpi, in.arr, &reply_msg);
+        int *ret;
+        if (pthread_join(tid, (void **)&ret)) {
+            logerr("Error waiting for thread in join");
+            goto exit;
+        }
+        sockdtp = *ret;
+        free(ret);
     }
-    struct vector reply_msg;
-    vector_create(&reply_msg, 128, 2);
-    enum reply_code reply = ftp_STOR(sockpi, in.arr, &reply_msg);
+
     while (ftp_pos_preliminary(reply)) {
         puts(reply_msg.arr);
         reply_msg.size = 0;
@@ -331,10 +404,13 @@ static void handle_send(const char *localpath) {
         reply = wait_for_reply(sockpi, &reply_msg);
     }
     puts(reply_msg.arr);
+
     exit:
     free(databuf);
-    fclose(in_file);
-    close(sockdtp);
+    if (in_file)
+        fclose(in_file);
+    if (sockdtp >= 0)
+        close(sockdtp);
     vector_free(&reply_msg);
     vector_free(&in);
 }
@@ -378,6 +454,8 @@ void repl(const int sockfd, const char *ipstr) {
             handle_cd(token);
         } else if (strcmp(token, "passive") == 0) {
             handle_passive();
+        } else if (strcmp(token, "extend") == 0) {
+            handle_extend();
         } else if (strcmp(token, "get") == 0) {
             token = strtok(NULL, " \t");
             handle_get(token);

@@ -20,6 +20,8 @@
 /* Check if reply code x is a perminent negative reply. */
 #define ftp_perm_neg(x) ((x) >= 500 && (x) < 600)
 
+#define FTPC_USE_PTHREAD -2
+
 #define FTPC_DO_PORT 0U  /* Delivery Option Port */
 #define FTPC_DO_PASV 1U  /* Delivery Option Passive */
 #define FTPC_DO_EXT  2U  /* Delivery Option Extended */
@@ -28,8 +30,10 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <pthread.h>
 #include "vector.h"
 
+/* Stores data in between calls when getting data from a socket. */
 struct sockbuf {
     uint8_t data[BUFSIZ];
     size_t i;
@@ -57,6 +61,7 @@ enum reply_code {
 
 int getchar_from_sock(int sockfd, struct sockbuf *buf);
 int connect_to_dtp(int sockpi, unsigned int delivery_option);
+int accept_server(int sockpi, unsigned int deliv_opt, pthread_t *tid);
 enum reply_code wait_for_reply(const int sockfd, struct vector *out_msg);
 enum reply_code ftp_USER(int sockfd, const char *username);
 enum reply_code ftp_PASS(int sockfd, const char *password);
