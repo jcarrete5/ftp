@@ -33,7 +33,7 @@ FTP validates the initial connection by asking for a username and password
 before allowing data to come through and be interpreted. For the data ports,
 however, FTP does no such validation. It is possible that a third-part host
 could connect to either the server or client data port and send/get data
-without the user knowing (there client might just hang and crash). The server/
+without the user knowing (their client might just hang and crash). The server/
 client cannot really trust the data coming through the data ports because it is
 not authenticated in any way. I would say that this would be pretty unlikely to
 happen simply because of how quickly the connections are made and closed.
@@ -46,9 +46,9 @@ the server before starting to send the next command so the client can be sure
 there wasn't an error in the first command. The sender knows that my commands
 are trustworthy because of the authentication process to initially connect to
 the server. Because the data and commands sent over the wire are unencrypted,
-it is possible for a third-party to sniff these packets and read their
+it *is* possible for a third-party to sniff these packets and read their
 contents. So in some ways, the server might not be able to trust the commands
-too because a third-party could have sniffed the authentication packets from a
+because a third-party could have sniffed the authentication packets from a
 previous session and used those credentials to log in as another user.
 
 Commands
