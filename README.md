@@ -10,7 +10,10 @@ Create a directory for output files
 
 Run cmake to generate a buildsystem
 
-    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=out ../
+    cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=out ../
+
+*There is a bug when using compiler optimization so use Debug; This is likely*
+*my fault*
 
 Compile sources and install
 
