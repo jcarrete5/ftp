@@ -628,7 +628,7 @@ enum reply_code ftp_EPRT(int sockfd, int family, const char *ipstr, const uint16
     struct vector msg;
     vector_create(&msg, 128, 2);
     char family_str[2], port_str[6];
-    sprintf(family_str, "%d", family);
+    sprintf(family_str, "%d", (family == AF_INET) ? 1 : 2);
     sprintf(port_str, "%"PRIu16, port);
     vector_append_str(&msg, "EPRT |");
     vector_append_str(&msg, family_str);
