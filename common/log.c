@@ -7,21 +7,19 @@
  * module must be initialized with a log file before it can function properly.
  */
 
-#include "config.h"
-#include "log.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <time.h>
 
+#include "log.h"
+
 static FILE *logfile;
 
 /* Execute before any log functions have been called. */
 static void prolog(void) {
     fputs("~~~~~~~~~~ session start ~~~~~~~~~~\n", logfile);
-    fputs(FTPC_EXE_NAME" "FTPC_VERSION"\n", logfile);
 }
 
 /*
@@ -37,9 +35,13 @@ static void logdeinit(void) {
     fclose(logfile);
 }
 
-/* Initialize the logging subsystem. Assumes file is non-NULL. */
-void loginit(FILE *const file) {
-    logfile = file;
+/* Initialize the logging subsystem. */
+void loginit(const char *const path) {
+    logfile = fopen(path, "a");
+    if (!logfile) {
+        perror("fopen");
+        exit(EXIT_FAILURE);
+    }
     prolog();
     if (atexit(logdeinit)) {
         logwarn("Log file will not be closed on exit");

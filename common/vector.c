@@ -6,8 +6,6 @@
  * This module implements a simple vector or growable array for characters.
  */
 
-#include "config.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>

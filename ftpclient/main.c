@@ -106,19 +106,6 @@ static uint16_t valid_port(const char *port) {
 }
 
 /*
- * Validates the path and returns a file pointer in append mode for that path.
- * Quits the program if the path cannot be opened.
- */
-static FILE *valid_logfile(const char *path) {
-    FILE *const logfile = fopen(path, "a");
-    if (!logfile) {
-        perror(FTPC_EXE_NAME": Error opening log file");
-        exit(EXIT_FAILURE);
-    }
-    return logfile;
-}
-
-/*
  * Initialize connection between user-PI and server-PI. Then hand off control
  * to the REPL.
  */
@@ -166,9 +153,8 @@ int main(int argc, char *argv[]) {
     const char *hostname = argv[1];
     const char *logfilename = argv[2];
     const uint16_t port = argc > 3 ? valid_port(argv[3]) : FTPC_DEFAULT_PORT;
-    FILE *const logfile = valid_logfile(logfilename);
     /* logfile is closed in logging subsystem on exit */
-    loginit(logfile);
+    loginit(logfilename);
     /* Handle SIGINT */
     struct sigaction action = {0};
     action.sa_handler = handle_sigint;

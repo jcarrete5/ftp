@@ -6,23 +6,21 @@
  * Header for log.c
  */
 
-#ifndef FTPC_LOG_H
-#define FTPC_LOG_H
-
-#include <stdio.h>
+#ifndef COMMON_LOG_H
+#define COMMON_LOG_H
 
 /*
- * Initialize the logging subsystem with a logfile to append to.
+ * Initialize the logging subsystem with a path to a logfile.
  *
- * Precondition: logfile must not be NULL
+ * Precondition: path must not be NULL
  */
-void loginit(FILE *const logfile);
+void loginit(const char *const path);
 
 /*
  * Log an information message. fmt is specified just like it is for printf
  * family functions.
  *
- * Precondition: loginit has been called and initialized with a logfile
+ * Precondition: loginit has been called and initialized with a path to a logfile
  */
 void loginfo(const char *fmt, ...);
 
@@ -30,7 +28,7 @@ void loginfo(const char *fmt, ...);
  * Log an information message. fmt is specified just like it is for printf
  * family functions.
  *
- * Precondition: loginit has been called and initialized with a logfile
+ * Precondition: loginit has been called and initialized with a path to a logfile
  */
 void logwarn(const char *fmt, ...);
 
@@ -38,8 +36,8 @@ void logwarn(const char *fmt, ...);
  * Log an information message. fmt is specified just like it is for printf
  * family functions.
  *
- * Precondition: loginit has been called and initialized with a logfile
+ * Precondition: loginit has been called and initialized with a path to a logfile
  */
 void logerr(const char *fmt, ...);
 
-#endif /* FTPC_LOG_H */
+#endif /* COMMON_LOG_H */

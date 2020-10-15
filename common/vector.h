@@ -6,8 +6,8 @@
  * Header for vector.c
  */
 
-#ifndef FTPC_VECTOR_H
-#define FTPC_VECTOR_H
+#ifndef COMMON_VECTOR_H
+#define COMMON_VECTOR_H
 
 #include <stddef.h>
 
@@ -33,4 +33,4 @@ void vector_append_str(struct vector *vec, const char *str);
 
 void vector_free(struct vector *vec);
 
-#endif /* FTPC_VECTOR_H */
+#endif /* COMMON_VECTOR_H */
