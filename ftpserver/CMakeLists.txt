@@ -1,4 +1,4 @@
-set(sources main.c client.c ../common/log.c ../common/vector.c)
+set(sources main.c client.c ../common/misc.c ../common/log.c ../common/vector.c)
 set(exe ftps)
 set(FTPS_EXE_NAME ${exe} PARENT_SCOPE)
 

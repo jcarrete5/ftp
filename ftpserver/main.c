@@ -12,15 +12,14 @@
 #include <ctype.h>
 #include <errno.h>
 #include <signal.h>
-#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 
 #include "log.h"
+#include "misc.h"
 #include "client.h"
 
 static bool accept_connections = true;
@@ -31,38 +30,6 @@ static void usage(void) {
           "    LOGFILE - Path to output log information to\n"
           "    PORT - Port number to listen for connections on\n",
           stderr);
-}
-
-/*
- * Converts struct sockaddr_storage to an ipv4 or ipv6 string with port.
- */
-static char *addrtostr(struct sockaddr_storage *addr) {
-    static char str[INET6_ADDRSTRLEN+7];
-    struct sockaddr_in *addrv4;
-    struct sockaddr_in6 *addrv6;
-    char *ptr = NULL;
-    switch (addr->ss_family) {
-        case AF_INET:
-            addrv4 = (struct sockaddr_in *)addr;
-            inet_ntop(AF_INET, &addrv4->sin_addr,
-                      str, INET_ADDRSTRLEN);
-            ptr = &str[strlen(str)];
-            *(ptr++) = ':';
-            sprintf(ptr, "%"PRIu16, ntohs(addrv4->sin_port));
-            break;
-        case AF_INET6:
-            addrv6 = (struct sockaddr_in6 *)addr;
-            inet_ntop(AF_INET6, &addrv6->sin6_addr,
-                      str, INET6_ADDRSTRLEN);
-            ptr = &str[strlen(str)];
-            *(ptr++) = ':';
-            sprintf(ptr, "%"PRIu16, ntohs(addrv6->sin6_port));
-            break;
-        default:
-            strcpy(str, "Unknown AF");
-            break;
-    }
-    return str;
 }
 
 /* Validates and returns the specified port or quits with an error. */
