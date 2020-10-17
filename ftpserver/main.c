@@ -72,11 +72,10 @@ static void handle_SIGCHLD(int signum) {
 }
 
 static void setup_sighandlers(void) {
-    /* FIXME: Something ain't working right here */
-    struct sigaction sigint;
+    struct sigaction sigint = {0};
     sigint.sa_handler = handle_SIGINT;
     sigaction(SIGINT, &sigint, NULL);
-    struct sigaction sigchld;
+    struct sigaction sigchld = {0};
     sigchld.sa_handler = handle_SIGCHLD;
     sigaction(SIGCHLD, &sigchld, NULL);
 }
