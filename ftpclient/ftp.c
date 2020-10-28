@@ -66,6 +66,7 @@ static char pi_getchar(int sockfd) {
         logerr("Error while reading data from user-PI socket");
         exit(EXIT_FAILURE);
     }
+    return ret;
 }
 
 /* Thread function to accept a connection and return the connecting socket. */
