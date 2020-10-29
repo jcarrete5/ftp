@@ -139,7 +139,7 @@ static void init_conn(struct addrinfo *const addrlist) {
 }
 
 /* SIGINT handler. */
-static void handle_sigint(int sig) {
+static void handle_sigint(__attribute__((unused)) int sig) {
     exit(EXIT_SUCCESS);
 }
 

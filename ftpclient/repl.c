@@ -110,7 +110,7 @@ static void wait_for_server(void) {
 /* Handle quit repl command. */
 static void handle_quit(void) {
     repl_running = false;
-    enum reply_code reply = ftp_QUIT(sockpi);
+    ftp_QUIT(sockpi);
     /* Reply is either 221 or 500; Ignoring since we are quitting anyway. */
 }
 
@@ -265,7 +265,6 @@ static void handle_get(const char *path) {
         puts("Path must not be NULL");
         return;
     }
-    pthread_t t_id;
     const bool rpassive = (delivery_option & FTPC_DO_PASV) == 1;
     int sockdtp = -1;
     struct vector reply_msg;
@@ -324,7 +323,7 @@ static void handle_get(const char *path) {
                 logerr("Error while reading from server-DTP");
                 goto exit;
             } else {
-                if (fwrite(databuf, sizeof *databuf, read, file) < read) {
+                if (fwrite(databuf, sizeof *databuf, read, file) < (size_t)read) {
                     logwarn("May have failed to save all data to file");
                     goto exit;
                 }
