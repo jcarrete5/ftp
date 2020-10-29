@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include <inttypes.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -41,4 +42,23 @@ char *addrtostr(struct sockaddr_storage *const addr) {
             break;
     }
     return str;
+}
+
+/*
+ * Get a character from the socket file descriptor. buf is used to buffer any
+ * extraneous data between calls; It will be exhausted before calling recv(2)
+ * again. Returns 0 on EOF or -1 on error, otherwise, the character is returned.
+ */
+int getchar_from_sock(int sockfd, struct sockbuf *buf) {
+    assert(buf);
+    if (buf->i == buf->size) {
+        ssize_t read = recv(sockfd, buf->data, sizeof buf->data, 0);
+        buf->i = 0;
+        buf->size = read < 0 ? 0 : read;
+        if (read <= 0) {
+            /* Signal exceptional case */
+            return read;
+        }
+    }
+    return buf->data[(buf->i)++];
 }

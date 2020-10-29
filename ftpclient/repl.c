@@ -29,6 +29,7 @@
 #include "log.h"
 #include "vector.h"
 #include "ftp.h"
+#include "misc.h"
 
 /* Socket file descriptor for the user-PI. */
 static int sockpi;

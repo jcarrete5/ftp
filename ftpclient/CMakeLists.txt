@@ -1,7 +1,7 @@
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-set(sources main.c repl.c ../common/log.c ftp.c ../common/vector.c)
+set(sources main.c repl.c ../common/log.c ftp.c ../common/vector.c ../common/misc.c)
 set(exe ftpc)
 set(FTPC_EXE_NAME ${exe} PARENT_SCOPE)
 add_executable(${exe} ${sources})

@@ -33,13 +33,6 @@
 #include <pthread.h>
 #include "vector.h"
 
-/* Stores data in between calls when getting data from a socket. */
-struct sockbuf {
-    uint8_t data[BUFSIZ];
-    size_t i;
-    size_t size;
-};
-
 /* FTP server reply codes. */
 enum reply_code {
     FTP_SERVER_BUSY = 120,
@@ -59,7 +52,6 @@ enum reply_code {
     FTP_USER_LOGIN_FAIL = 530,
 };
 
-int getchar_from_sock(int sockfd, struct sockbuf *buf);
 int connect_to_dtp(int sockpi, unsigned int delivery_option, const char *ripstr);
 int accept_server(int sockpi, unsigned int deliv_opt, pthread_t *tid);
 enum reply_code wait_for_reply(const int sockfd, struct vector *out_msg);
