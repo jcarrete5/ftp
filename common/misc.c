@@ -1,5 +1,9 @@
 /*
+ * CS472 HW 3
+ * Jason R. Carrete
+ * misc.c
  *
+ * This module implements miscellaneous helper functions.
  */
 
 #include <stdlib.h>

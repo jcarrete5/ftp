@@ -1,10 +1,10 @@
 /*
- * CS472 HW 2
+ * CS472 HW 3
  * Jason R. Carrete
  * log.c
  *
  * This module implements a logging interface for use by other modules. This
- * module must be initialized with a log file before it can function properly.
+ * module must be initialized with a filepath before it can function properly.
  */
 
 #include <stdio.h>

@@ -1,5 +1,9 @@
 /*
+ * CS472 HW 3
+ * Jason R. Carrete
+ * client.h
  *
+ * Header for client.c
  */
 
 #ifndef FTPS_CLIENT_H

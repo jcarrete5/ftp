@@ -1,5 +1,9 @@
 /*
+ * CS472 HW 3
+ * Jason R. Carrete
+ * client.c
  *
+ * This module handles communication with a single connected client.
  */
 
 #include <stdlib.h>
@@ -39,6 +43,7 @@ const char *supported_cmds[] = {
     "USER",
 };
 
+/* Server reply codes. */
 enum reply_code {
     SERVER_BUSY = 120,
     SUPERFLUOUS = 202,
@@ -58,6 +63,10 @@ enum reply_code {
     USER_LOGIN_FAIL = 530,
 };
 
+/* Buffer for data received from server-PI. */
+static struct sockbuf pi_buf = {0};
+
+/* State for the client connection. */
 static struct {
     int id;
     int sockpi;
@@ -67,8 +76,7 @@ static struct {
     unsigned to;    /* Transmission Options */
 } state;
 
-static struct sockbuf pi_buf = {0};
-
+/* Return a default reply string for a given reply code. */
 static char *default_reply_str(enum reply_code code) {
     switch(code) {
         case SERVER_READY:
@@ -80,6 +88,10 @@ static char *default_reply_str(enum reply_code code) {
     }
 }
 
+/*
+ * Send a reply to the client with the given reply code and optional single or
+ * multi line message.
+ */
 static void reply_with(enum reply_code code, const char *msg, bool multiline) {
     const char *text = msg ? msg : default_reply_str(code);
     char code_str[4];

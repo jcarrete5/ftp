@@ -1,5 +1,10 @@
 /*
+ * CS472 HW 3
+ * Jason R. Carrete
+ * main.c
  *
+ * This module is the main entry point for the server. It handles parsing
+ * command-line arguments and accepts incoming connections.
  */
 
 #include "config.h"
@@ -59,11 +64,13 @@ static uint16_t valid_port(const char *port) {
     return val;
 }
 
+/* Handler for keyboard interrupt. */
 static void handle_SIGINT(__attribute__((unused)) int signum) {
     loginfo("Main: keyboard interrupt");
     accept_connections = false;
 }
 
+/* Wait for exiting child processes. */
 static void handle_SIGCHLD(__attribute__((unused)) int signum) {
     loginfo("Main: got SIGCHLD");
     if (wait(NULL) == -1) {
@@ -71,6 +78,7 @@ static void handle_SIGCHLD(__attribute__((unused)) int signum) {
     }
 }
 
+/* Setup signal handlers. */
 static void setup_sighandlers(void) {
     struct sigaction sigint = {0};
     sigint.sa_handler = handle_SIGINT;
@@ -132,6 +140,7 @@ static void start_server(const uint16_t port) {
     }
 }
 
+/* Main entry point. */
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         fputs(FTPS_EXE_NAME": Not enough arguments\n", stderr);

@@ -1,5 +1,9 @@
 /*
+ * CS472 HW 3
+ * Jason R. Carrete
+ * misc.h
  *
+ * Header for misc.c
  */
 
 #ifndef COMMON_MISC_H

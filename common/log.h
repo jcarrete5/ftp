@@ -1,5 +1,5 @@
 /*
- * CS472 HW 2
+ * CS472 HW 3
  * Jason R. Carrete
  * log.h
  *
