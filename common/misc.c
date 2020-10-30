@@ -62,3 +62,13 @@ int getchar_from_sock(int sockfd, struct sockbuf *buf) {
     }
     return buf->data[(buf->i)++];
 }
+
+/*
+ * Wrapper around strcmp to be used in bsearch(3).
+ * https://stackoverflow.com/a/15824981/2981420
+ */
+int bsearch_strcmp(const void *s1, const void *s2) {
+  const char *key = s1;
+  const char *const *arg = s2;
+  return strcmp(key, *arg);
+}

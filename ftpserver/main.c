@@ -59,12 +59,12 @@ static uint16_t valid_port(const char *port) {
     return val;
 }
 
-static void handle_SIGINT(int signum) {
+static void handle_SIGINT(__attribute__((unused)) int signum) {
     loginfo("Main: keyboard interrupt");
     accept_connections = false;
 }
 
-static void handle_SIGCHLD(int signum) {
+static void handle_SIGCHLD(__attribute__((unused)) int signum) {
     loginfo("Main: got SIGCHLD");
     if (wait(NULL) == -1) {
         logwarn("Main: failed to wait for a child (wait: %s)", strerror(errno));
@@ -106,7 +106,7 @@ static void start_server(const uint16_t port) {
     struct sockaddr_storage addr;
     socklen_t addrlen = sizeof addr;
     pid_t pid = 1;  /* Set to 1 so the loop continues in case of initial error */
-    int sockclient;
+    int sockclient, conn_count = 0;
     do {
         if ((sockclient=accept(socklisten, (struct sockaddr *)&addr, &addrlen)) == -1) {
             if (errno != EINTR) {
@@ -114,6 +114,7 @@ static void start_server(const uint16_t port) {
             }
         } else {
             loginfo("Main: accepted a connection from %s", addrtostr(&addr));
+            conn_count++;
             if ((pid=fork()) == -1) {
                 logwarn("Main: error forking a process for accepted connection "
                         "(fork: %s)",
@@ -125,8 +126,9 @@ static void start_server(const uint16_t port) {
     if (pid) /* in parent */ {
         close(socklisten);
         loginfo("Main: no longer accepting connections");
+        /* TODO: Wait for children to end */
     } else  /* in child */ {
-        handle_new_client(sockclient, &addr, addrlen);
+        handle_new_client(conn_count, sockclient, &addr, addrlen);
     }
 }
 

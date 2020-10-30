@@ -16,5 +16,6 @@ struct sockbuf {
 
 char *addrtostr(struct sockaddr_storage *const addr);
 int getchar_from_sock(int sockfd, struct sockbuf *buf);
+int bsearch_strcmp(const void *s1, const void *s2);
 
 #endif /* COMMON_MISC_H */
