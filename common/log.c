@@ -17,19 +17,6 @@
 
 static FILE *logfile;
 
-/* Execute before any log functions have been called. */
-static void prolog(void) {
-    fputs("~~~~~~~~~~ session start ~~~~~~~~~~\n", logfile);
-}
-
-/*
- * Execute just before the logging subsystem is stopped i.e. when the
- * application stops.
- */
-static void epilog(void) {
-    fputs("~~~~~~~~~~~ session end ~~~~~~~~~~~\n\n", logfile);
-}
-
 /* Clean up any resources used. */
 static void logdeinit(void) {
     fclose(logfile);
@@ -42,12 +29,8 @@ void loginit(const char *const path) {
         perror("fopen");
         exit(EXIT_FAILURE);
     }
-    prolog();
     if (atexit(logdeinit)) {
         logwarn("Log file will not be closed on exit");
-    }
-    if (atexit(epilog)) {
-        logwarn("Log epilog will not execute on exit");
     }
 }
 
