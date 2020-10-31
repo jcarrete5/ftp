@@ -187,6 +187,8 @@ static int get_next_cmd(char cmd[5], char arg[], size_t arglen) {
     }
     if (strcmp(cmd, "ACCT") == 0) {
         reply_with(SUPERFLUOUS, NULL, false);
+        pi_buf.i = 0;
+        pi_buf.size = 0;
         return -2;
     }
 
