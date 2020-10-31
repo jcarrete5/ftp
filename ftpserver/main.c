@@ -26,6 +26,7 @@
 #include "log.h"
 #include "misc.h"
 #include "client.h"
+#include "auth.h"
 
 static bool accept_connections = true;
 
@@ -152,6 +153,7 @@ int main(int argc, char *argv[]) {
     uint16_t port = valid_port(portstr);
     loginit(logpathstr);
     setup_sighandlers();
+    auth_read_passwd();
     start_server(port);
     return EXIT_SUCCESS;
 }

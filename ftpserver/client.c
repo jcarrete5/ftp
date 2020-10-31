@@ -21,7 +21,10 @@
 #include "log.h"
 #include "client.h"
 #include "vector.h"
+#include "auth.h"
 #include "misc.h"
+
+#define MAX_ARG_LEN 2048U
 
 #define READY_BIT  0x01U
 #define PASV_BIT   0x02U
@@ -45,21 +48,22 @@ const char *supported_cmds[] = {
 
 /* Server reply codes. */
 enum reply_code {
-    SERVER_BUSY = 120,
-    SUPERFLUOUS = 202,
-    SYST_TYPE = 215,
-    SERVER_READY = 220,
-    USER_LOGGED_IN = 230,
-    NEED_PASS = 331,
-    NEED_ACCT = 332,
-    SERVER_NA = 421,
-    NO_DATA_CONN = 425,
-    CONN_CLOSED = 426,
-    NO_ACTION = 450,
-    ACTION_ABORTED = 451,
-    SYNTAX_ERR = 500,
+    SERVER_BUSY     = 120,
+    SUPERFLUOUS     = 202,
+    SYST_TYPE       = 215,
+    SERVER_READY    = 220,
+    CLOSING_CONN    = 221,
+    USER_LOGGED_IN  = 230,
+    NEED_PASS       = 331,
+    SERVER_NA       = 421,
+    NO_DATA_CONN    = 425,
+    CONN_CLOSED     = 426,
+    NO_ACTION       = 450,
+    ACTION_ABORTED  = 451,
+    SYNTAX_ERR      = 500,
     SYNTAX_ERR_ARGS = 501,
-    CMD_NOT_IMPL = 502,
+    CMD_NOT_IMPL    = 502,
+    BAD_SEQ         = 503,
     USER_LOGIN_FAIL = 530,
 };
 
@@ -70,10 +74,9 @@ static struct sockbuf pi_buf = {0};
 static struct {
     int id;
     int sockpi;
-    bool got_user;
-    bool got_pass;
-    bool auth;      /* True when the client is authenticated */
     unsigned to;    /* Transmission Options */
+    bool auth;      /* True when the client is authenticated */
+    char uname[2048];
 } state;
 
 /* Return a default reply string for a given reply code. */
@@ -83,6 +86,18 @@ static char *default_reply_str(enum reply_code code) {
             return "Service ready for new user.";
         case SYNTAX_ERR:
             return "Syntax error, command unrecognized.";
+        case NEED_PASS:
+            return "User name okay, need password.";
+        case USER_LOGIN_FAIL:
+            return "Not logged in.";
+        case SUPERFLUOUS:
+            return "Command not implemented, superfluous at this site.";
+        case USER_LOGGED_IN:
+            return "User logged in, proceed.";
+        case BAD_SEQ:
+            return "Bad sequence of commands.";
+        case CLOSING_CONN:
+            return "Service closing control connection";
         default:
             return "Acknowledged";
     }
@@ -155,7 +170,7 @@ static int get_next_cmd(char cmd[5], char arg[], size_t arglen) {
         if (!bsearch(cmd, supported_cmds, sizeof supported_cmds / sizeof *supported_cmds,
                      sizeof *supported_cmds, bsearch_strcmp))
         {
-            logwarn("Conn %d: unsupported command; resetting pi_buf", state.id);
+            logwarn("Conn %d: unsupported command '%s'; resetting pi_buf", state.id, cmd);
             pi_buf.i = 0;
             pi_buf.size = 0;
             reply_with(CMD_NOT_IMPL, NULL, false);
@@ -169,6 +184,10 @@ static int get_next_cmd(char cmd[5], char arg[], size_t arglen) {
         } else {
             goto err_syntax;
         }
+    }
+    if (strcmp(cmd, "ACCT") == 0) {
+        reply_with(SUPERFLUOUS, NULL, false);
+        return -2;
     }
 
     /* Parse optional argument */
@@ -187,10 +206,42 @@ static int get_next_cmd(char cmd[5], char arg[], size_t arglen) {
 
     err_syntax:
     logwarn("Conn %d: invalid command or too long; resetting pi_buf", state.id);
+    /* TODO Instead of resetting the buffer, consider reading until a \r\n */
     pi_buf.i = 0;
     pi_buf.size = 0;
     reply_with(SYNTAX_ERR, NULL, false);
     return -1;
+}
+
+static void handle_USER(const char uname[MAX_ARG_LEN]) {
+    state.auth = false;
+    if (valid_user(uname)) {
+        strcpy(state.uname, uname);
+        reply_with(NEED_PASS, NULL, false);
+    } else {
+        reply_with(USER_LOGIN_FAIL, NULL, false);
+    }
+}
+
+static void handle_PASS(const char passwd[MAX_ARG_LEN]) {
+    if (strlen(state.uname) > 0) {
+        if (valid_password(state.uname, passwd)) {
+            state.auth = true;
+            reply_with(USER_LOGGED_IN, NULL, false);
+        } else {
+            state.auth = false;
+            state.uname[0] = '\0';
+            reply_with(USER_LOGIN_FAIL, NULL, false);
+        }
+    } else {
+        state.auth = false;
+        state.uname[0] = '\0';
+        reply_with(BAD_SEQ, NULL, false);
+    }
+}
+
+static void handle_QUIT(void) {
+    reply_with(CLOSING_CONN, NULL, false);
 }
 
 /* Start handling commands from a newly connected client. */
@@ -201,12 +252,17 @@ void handle_new_client(const int id, const int sockpi,
     state.sockpi = sockpi;
     reply_with(SERVER_READY, NULL, false);
 
-    char cmd[5], arg[2048];
+    char cmd[5], arg[MAX_ARG_LEN];
     while (true) {
-        if (get_next_cmd(cmd, arg, 2048) == -1) continue;
+        if (get_next_cmd(cmd, arg, MAX_ARG_LEN) < 0) continue;
         loginfo("Conn %d: received %s", state.id, cmd);
-        if (strcmp(cmd, "SYST") == 0) {
-            reply_with(SYST_TYPE, "UNIX system type", false);
+        if (strcmp(cmd, "USER") == 0) {
+            handle_USER(arg);
+        } else if (strcmp(cmd, "PASS") == 0) {
+            handle_PASS(arg);
+        } else if (strcmp(cmd, "QUIT") == 0) {
+            handle_QUIT();
+            break;  /* Break out of loop; we are quitting */
         } else {
             logwarn("Conn %d: unknown command '%s'", state.id, cmd);
             reply_with(CMD_NOT_IMPL, NULL, false);
