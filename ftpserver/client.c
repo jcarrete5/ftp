@@ -13,6 +13,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <limits.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -24,11 +25,14 @@
 #include "auth.h"
 #include "misc.h"
 
+#define DATA_ROOT_PREFIX "./out/srv/ftps"
 #define MAX_ARG_LEN 2048U
 
 #define READY_BIT  0x01U
 #define PASV_BIT   0x02U
 #define EXT_BIT    0x04U
+
+static char root[PATH_MAX];
 
 /* Sorted list of supported commands. */
 const char *supported_cmds[] = {
@@ -36,6 +40,7 @@ const char *supported_cmds[] = {
     "CWD",
     "EPRT",
     "EPSV",
+    "LIST",
     "PASS",
     "PASV",
     "PORT",
@@ -54,6 +59,8 @@ enum reply_code {
     SERVER_READY    = 220,
     CLOSING_CONN    = 221,
     USER_LOGGED_IN  = 230,
+    FILE_ACT_OK     = 250,
+    PATH_CREATED    = 257,
     NEED_PASS       = 331,
     SERVER_NA       = 421,
     NO_DATA_CONN    = 425,
@@ -65,6 +72,7 @@ enum reply_code {
     CMD_NOT_IMPL    = 502,
     BAD_SEQ         = 503,
     USER_LOGIN_FAIL = 530,
+    NO_ACTION_PERM  = 550,
 };
 
 /* Buffer for data received from server-PI. */
@@ -74,9 +82,10 @@ static struct sockbuf pi_buf = {0};
 static struct {
     int id;
     int sockpi;
-    unsigned to;    /* Transmission Options */
-    bool auth;      /* True when the client is authenticated */
-    char uname[2048];
+    unsigned to;                /* Transmission Options */
+    bool auth;                  /* True when the client is authenticated */
+    char cwd[PATH_MAX];      /* Current working directory */
+    char uname[MAX_ARG_LEN];
 } state;
 
 /* Return a default reply string for a given reply code. */
@@ -97,7 +106,13 @@ static char *default_reply_str(enum reply_code code) {
         case BAD_SEQ:
             return "Bad sequence of commands.";
         case CLOSING_CONN:
-            return "Service closing control connection";
+            return "Service closing control connection.";
+        case SYNTAX_ERR_ARGS:
+            return "Syntax error in parameters or arguments.";
+        case PATH_CREATED:
+            return "\"PATHNAME\" created.";
+        case FILE_ACT_OK:
+            return "Requested file action okay, completed.";
         default:
             return "Acknowledged";
     }
@@ -246,14 +261,76 @@ static void handle_QUIT(void) {
     reply_with(CLOSING_CONN, NULL, false);
 }
 
+static void handle_PWD(void) {
+    if (!state.auth) {
+        reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
+        return;
+    }
+    reply_with(PATH_CREATED, state.cwd, false);
+}
+
+static void handle_CWD(const char path[MAX_ARG_LEN]) {
+    if (!state.auth) {
+        reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
+        return;
+    }
+
+    /* Construct new path */
+    char dst[PATH_MAX];
+    strcpy(dst, root);
+    if (path[0] != '/') {
+        strcat(dst, state.cwd);
+    }
+    strcat(dst, path);
+    char buf[PATH_MAX];
+    if (!realpath(dst, buf)) {
+        logwarn("Conn %d: failed canonicalizing '%s' (realpath: %s)",
+                state.id, dst, strerror(errno));
+        reply_with(NO_ACTION_PERM, "Cannot change to that path", false);
+        return;
+    }
+    strcpy(dst, buf);
+
+    /* Ensure path does not go below root */
+    char *common = strstr(dst, root);
+    if (common && strncmp(common, root, strlen(root)) == 0) {
+        if (chdir(dst) == 0) {
+            strcpy(state.cwd, dst+strlen(root));
+            strcat(state.cwd, "/");
+            loginfo("Conn %d: changed dir to '%s'; cwd=%s", state.id, dst, state.cwd);
+            reply_with(FILE_ACT_OK, NULL, false);
+        } else {
+            logwarn("Conn %d: failed to change directory (chdir %s)",
+                    state.id, strerror(errno));
+            reply_with(NO_ACTION_PERM, "Cannot change to that path", false);
+        }
+    } else {
+        logwarn("Conn %d: failed to change directory; illegal path '%s'", state.id, dst);
+        reply_with(NO_ACTION_PERM, "Cannot change to that path", false);
+    }
+}
+
 /* Start handling commands from a newly connected client. */
 void handle_new_client(const int id, const int sockpi,
                        struct sockaddr_storage *peeraddr,
                        socklen_t peeraddrlen) {
+    /* Initialize state */
     state.id = id;
     state.sockpi = sockpi;
+    strcpy(state.cwd, "/");
+    if (!realpath(DATA_ROOT_PREFIX, root)) {
+        logerr("Conn %d: cannot get canonical path for data root (realpath %s)",
+               state.id, strerror(errno));
+        _exit(EXIT_FAILURE);
+    }
+    if (chdir(root) == -1) {
+        logerr("Conn %d: failed to change directory to data root (chdir %s)",
+               state.id, strerror(errno));
+        _exit(EXIT_FAILURE);
+    }
     reply_with(SERVER_READY, NULL, false);
 
+    /* Start response loop */
     char cmd[5], arg[MAX_ARG_LEN];
     while (true) {
         if (get_next_cmd(cmd, arg, MAX_ARG_LEN) < 0) continue;
@@ -263,12 +340,31 @@ void handle_new_client(const int id, const int sockpi,
         } else if (strcmp(cmd, "PASS") == 0) {
             handle_PASS(arg);
         } else if (strcmp(cmd, "QUIT") == 0) {
-            handle_QUIT();
-            break;  /* Break out of loop; we are quitting */
+            if (strlen(arg) > 0) {
+                /* QUIT should take no arguments */
+                reply_with(SYNTAX_ERR_ARGS, NULL, false);
+            } else {
+                handle_QUIT();
+                break;  /* Break out of loop; we are quitting */
+            }
+        } else if (strcmp(cmd, "PWD") == 0) {
+            if (strlen(arg) > 0) {
+                /* PWD should take no arguments */
+                reply_with(SYNTAX_ERR_ARGS, NULL, false);
+            } else {
+                handle_PWD();
+            }
+        } else if (strcmp(cmd, "CWD") == 0) {
+            handle_CWD(arg);
+        } else if (strcmp(cmd, "CDUP") == 0) {
+            handle_CWD("..");
         } else {
             logwarn("Conn %d: unknown command '%s'", state.id, cmd);
             reply_with(CMD_NOT_IMPL, NULL, false);
         }
+        /* Reset arg and cmd */
+        cmd[0] = '\0';
+        arg[0] = '\0';
     }
 
     close(state.sockpi);
