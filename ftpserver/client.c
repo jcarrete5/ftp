@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
@@ -17,6 +18,9 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <dirent.h>
 #include <unistd.h>
 
 #include "log.h"
@@ -27,12 +31,6 @@
 
 #define DATA_ROOT_PREFIX "./out/srv/ftps"
 #define MAX_ARG_LEN 2048U
-
-#define READY_BIT  0x01U
-#define PASV_BIT   0x02U
-#define EXT_BIT    0x04U
-
-static char root[PATH_MAX];
 
 /* Sorted list of supported commands. */
 const char *supported_cmds[] = {
@@ -54,10 +52,14 @@ const char *supported_cmds[] = {
 /* Server reply codes. */
 enum reply_code {
     SERVER_BUSY     = 120,
+    STARTING_TX     = 125,
+    OPENING_CONN    = 150,
+    COMMAND_OK      = 200,
     SUPERFLUOUS     = 202,
     SYST_TYPE       = 215,
     SERVER_READY    = 220,
     CLOSING_CONN    = 221,
+    TX_COMPLETE     = 226,
     USER_LOGGED_IN  = 230,
     FILE_ACT_OK     = 250,
     PATH_CREATED    = 257,
@@ -78,13 +80,17 @@ enum reply_code {
 /* Buffer for data received from server-PI. */
 static struct sockbuf pi_buf = {0};
 
+static char root[PATH_MAX];
 /* State for the client connection. */
 static struct {
+    struct sockaddr_storage port_addr;
     int id;
     int sockpi;
-    unsigned to;                /* Transmission Options */
-    bool auth;                  /* True when the client is authenticated */
-    char cwd[PATH_MAX];      /* Current working directory */
+    bool dtp_ready;           /* True if the DTP is configured and ready for communication */
+    bool passive;             /* True for passive mode, false for port mode */
+    bool extended;            /* True for extended mode, false for normal mode */
+    bool auth;                /* True when the client is authenticated */
+    char cwd[PATH_MAX];       /* Current working directory */
     char uname[MAX_ARG_LEN];
 } state;
 
@@ -113,6 +119,20 @@ static char *default_reply_str(enum reply_code code) {
             return "\"PATHNAME\" created.";
         case FILE_ACT_OK:
             return "Requested file action okay, completed.";
+        case STARTING_TX:
+            return "Data connection already open; transfer starting.";
+        case TX_COMPLETE:
+            return "Closing data connection.";
+        case OPENING_CONN:
+            return "File status okay; about to open data connection.";
+        case NO_DATA_CONN:
+            return "Can’t open data connection.";
+        case ACTION_ABORTED:
+            return "Requested action aborted: local error in processing.";
+        case CMD_NOT_IMPL:
+            return "Command not implemented.";
+        case COMMAND_OK:
+            return "Command okay.";
         default:
             return "Acknowledged";
     }
@@ -165,6 +185,50 @@ static char pi_getchar() {
 }
 
 /*
+ * Construct a valid path from the specified path into dst. Return 0 if path
+ * is valid, otherwise return -1.
+ */
+static int construct_valid_path(char dst[PATH_MAX], const char path[MAX_ARG_LEN]) {
+    strcpy(dst, root);
+    if (path[0] != '/') {
+        strcat(dst, state.cwd);
+    }
+    strcat(dst, path);
+    char buf[PATH_MAX];
+    if (!realpath(dst, buf)) {
+        logwarn("Conn %d: failed canonicalizing '%s' (realpath: %s)",
+                state.id, dst, strerror(errno));
+        return -1;
+    }
+    strcpy(dst, buf);
+
+    /* Make sure path doesn't go below root */
+    char *common = strstr(dst, root);
+    if (common && strncmp(common, root, strlen(root)) == 0) {
+        return 0;   /* Valid path */
+    } else {
+        return -1;  /* Invalid path */
+    }
+}
+
+static int connect_to_dtp() {
+    int sockdtp = -1;
+    socklen_t addrlen = state.port_addr.ss_family == AF_INET ?
+                        sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
+    if ((sockdtp=socket(state.port_addr.ss_family, SOCK_STREAM, 0)) == -1) {
+        logerr("Conn %d: failed to create socket (socket: %s)", state.id, strerror(errno));
+        sockdtp = -1;
+    }
+    if (connect(sockdtp, (struct sockaddr *)&state.port_addr, addrlen) == -1) {
+        logerr("Conn %d: failed to connect to client-dtp (connect: %s)",
+               state.id, strerror(errno));
+        close(sockdtp);
+        sockdtp = -1;
+    }
+    return sockdtp;
+}
+
+/*
  * Attempt to parse the next command sent from the client. Return -1 if the
  * command is malformed, otherwise return 0 and set cmd, and arg appropriately.
  */
@@ -195,6 +259,7 @@ static int get_next_cmd(char cmd[5], char arg[], size_t arglen) {
     char ch = pi_getchar();
     if (ch == '\r') {
         if (pi_getchar() == '\n') {
+            arg[0] = '\0';
             return 0;
         } else {
             goto err_syntax;
@@ -275,25 +340,8 @@ static void handle_CWD(const char path[MAX_ARG_LEN]) {
         return;
     }
 
-    /* Construct new path */
     char dst[PATH_MAX];
-    strcpy(dst, root);
-    if (path[0] != '/') {
-        strcat(dst, state.cwd);
-    }
-    strcat(dst, path);
-    char buf[PATH_MAX];
-    if (!realpath(dst, buf)) {
-        logwarn("Conn %d: failed canonicalizing '%s' (realpath: %s)",
-                state.id, dst, strerror(errno));
-        reply_with(NO_ACTION_PERM, "Cannot change to that path", false);
-        return;
-    }
-    strcpy(dst, buf);
-
-    /* Ensure path does not go below root */
-    char *common = strstr(dst, root);
-    if (common && strncmp(common, root, strlen(root)) == 0) {
+    if (!construct_valid_path(dst, path)) {
         if (chdir(dst) == 0) {
             strcpy(state.cwd, dst+strlen(root));
             strcat(state.cwd, "/");
@@ -310,6 +358,103 @@ static void handle_CWD(const char path[MAX_ARG_LEN]) {
     }
 }
 
+static void handle_PORT(char *arg) {
+    if (!state.auth) {
+        reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
+        return;
+    }
+
+    char ipv4[INET_ADDRSTRLEN];
+    ipv4[0] = '\0';
+    in_port_t port;
+
+    /* Parse ip and port from arg */
+    char *tok = strtok(arg, ",");
+    for (size_t i = 0; i < 4; i++, tok = strtok(NULL, ",")) {
+        if (!tok || strlen(tok) > 3) {
+            reply_with(SYNTAX_ERR_ARGS, "Malformed port command", false);
+            return;
+        }
+        strncat(ipv4, tok, 3);
+        if (i < 3)
+            strcat(ipv4, ".");
+    }
+    if (!tok) {
+        reply_with(SYNTAX_ERR_ARGS, "Malformed port command", false);
+        return;
+    }
+    unsigned msb = atoi(tok);
+    tok = strtok(NULL, ",");
+    if (!tok) {
+        reply_with(SYNTAX_ERR_ARGS, "Malformed port command", false);
+        return;
+    }
+    unsigned lsb = atoi(tok);
+    port = (msb << 8) | lsb;
+    loginfo("Conn %d: PORT address is %s:%"PRIu16, state.id, ipv4, port);
+
+    /* Update state */
+    state.port_addr.ss_family = AF_INET;
+    inet_pton(AF_INET, ipv4, &((struct sockaddr_in *)&state.port_addr)->sin_addr);
+    ((struct sockaddr_in *)&state.port_addr)->sin_port = htons(port);
+    state.dtp_ready = true;
+    state.passive = false;
+    state.extended = false;
+    reply_with(COMMAND_OK, NULL, false);
+}
+
+static void handle_LIST(const char *path) {
+    if (!state.auth) {
+        reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
+        return;
+    }
+    if (!state.dtp_ready) {
+        reply_with(NO_ACTION, "Specify data transfer control command first "
+                              "(i.e. PORT, PASV, EPRT, EPSV)", false);
+        return;
+    }
+    char canon[PATH_MAX];
+    if (construct_valid_path(canon, path) == -1) {
+        reply_with(SYNTAX_ERR_ARGS, "Illegal path", false);
+        return;
+    }
+    reply_with(OPENING_CONN, "Here comes the directory listing", false);
+
+    /* Establish data connection */
+    int sockdtp;
+    if (state.passive) {
+        /* TODO Handle PASV mode */
+    } else {
+        sockdtp = connect_to_dtp();
+        if (sockdtp == -1) {
+            reply_with(NO_DATA_CONN, NULL, false);
+            return;
+        }
+    }
+
+    /* Send directory listing */
+    DIR *dir = opendir(canon);
+    if (!dir) {
+        logerr("Conn %d: error opening directory for listing (opendir: %s)",
+               state.id, strerror(errno));
+        reply_with(ACTION_ABORTED, NULL, false);
+        close(sockdtp);
+        return;
+    }
+    for (struct dirent *ent = readdir(dir); ent; ent = readdir(dir)) {
+        char sndbuf[300];
+        strcpy(sndbuf, ent->d_name);
+        strcat(sndbuf, "\r\n");
+        if (send(sockdtp, sndbuf, strlen(sndbuf), 0) == -1) {
+            logwarn("Conn %d: error sending a directory listing (send: %s)",
+                    state.id, strerror(errno));
+        }
+    }
+    closedir(dir);
+    close(sockdtp);
+    reply_with(TX_COMPLETE, "Directory send OK", false);
+}
+
 /* Start handling commands from a newly connected client. */
 void handle_new_client(const int id, const int sockpi,
                        struct sockaddr_storage *peeraddr,
@@ -319,12 +464,12 @@ void handle_new_client(const int id, const int sockpi,
     state.sockpi = sockpi;
     strcpy(state.cwd, "/");
     if (!realpath(DATA_ROOT_PREFIX, root)) {
-        logerr("Conn %d: cannot get canonical path for data root (realpath %s)",
+        logerr("Conn %d: cannot get canonical path for data root (realpath: %s)",
                state.id, strerror(errno));
         _exit(EXIT_FAILURE);
     }
     if (chdir(root) == -1) {
-        logerr("Conn %d: failed to change directory to data root (chdir %s)",
+        logerr("Conn %d: failed to change directory to data root (chdir: %s)",
                state.id, strerror(errno));
         _exit(EXIT_FAILURE);
     }
@@ -357,7 +502,16 @@ void handle_new_client(const int id, const int sockpi,
         } else if (strcmp(cmd, "CWD") == 0) {
             handle_CWD(arg);
         } else if (strcmp(cmd, "CDUP") == 0) {
-            handle_CWD("..");
+            if (strlen(arg) > 0) {
+                /* PWD should take no arguments */
+                reply_with(SYNTAX_ERR_ARGS, NULL, false);
+            } else {
+                handle_CWD("..");
+            }
+        } else if (strcmp(cmd, "PORT") == 0) {
+            handle_PORT(arg);
+        } else if (strcmp(cmd, "LIST") == 0) {
+            handle_LIST(arg);
         } else {
             logwarn("Conn %d: unknown command '%s'", state.id, cmd);
             reply_with(CMD_NOT_IMPL, NULL, false);
