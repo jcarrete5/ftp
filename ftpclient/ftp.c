@@ -326,9 +326,9 @@ int connect_to_dtp(int sockpi, unsigned int delivery_option, const char *ripstr)
 /* Start a thread waiting for server connection. */
 int accept_server(int sockpi, unsigned int delivery_option, pthread_t *tid) {
     assert((delivery_option & FTPC_DO_PASV) == 0);
-    struct sockaddr myaddr;
-    socklen_t saddrlen;
-    if (getsockname(sockpi, &myaddr, &saddrlen) < 0) {
+    struct sockaddr_storage myaddr;
+    socklen_t saddrlen = sizeof myaddr;
+    if (getsockname(sockpi, (struct sockaddr *)&myaddr, &saddrlen) < 0) {
         perror("getsockname");
         logerr("Failed to get bound IP of sockpi");
         return -1;
@@ -336,12 +336,12 @@ int accept_server(int sockpi, unsigned int delivery_option, pthread_t *tid) {
 
     /* Get my IP string */
     char ipstr[INET6_ADDRSTRLEN];
-    switch (myaddr.sa_family) {
+    switch (myaddr.ss_family) {
         case AF_INET:
-            inet_ntop(myaddr.sa_family, &((struct sockaddr_in *)&myaddr)->sin_addr, ipstr, saddrlen);
+            inet_ntop(myaddr.ss_family, &((struct sockaddr_in *)&myaddr)->sin_addr, ipstr, saddrlen);
             break;
         case AF_INET6:
-            inet_ntop(myaddr.sa_family, &((struct sockaddr_in6 *)&myaddr)->sin6_addr, ipstr, saddrlen);
+            inet_ntop(myaddr.ss_family, &((struct sockaddr_in6 *)&myaddr)->sin6_addr, ipstr, saddrlen);
             break;
     }
 
