@@ -137,7 +137,7 @@ static void start_server(const uint16_t port) {
         loginfo("Main: no longer accepting connections");
         /* TODO: Wait for children to end */
     } else  /* in child */ {
-        handle_new_client(conn_count, sockclient, &addr, addrlen);
+        handle_new_client(conn_count, sockclient);
     }
 }
 

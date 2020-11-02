@@ -12,8 +12,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-void handle_new_client(const int conn_id, const int sockpi,
-                       struct sockaddr_storage *peeraddr,
-                       socklen_t peeraddrlen);
+void handle_new_client(const int conn_id, const int sockpi);
 
 #endif /* FTPS_CLIENT_H */

@@ -22,6 +22,7 @@
 #include <netinet/in.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "log.h"
 #include "client.h"
@@ -83,15 +84,17 @@ static struct sockbuf pi_buf = {0};
 static char root[PATH_MAX];
 /* State for the client connection. */
 static struct {
-    struct sockaddr_storage port_addr;
-    int id;
-    int sockpi;
+    char cwd[PATH_MAX];       /* Current working directory */
+    char uname[MAX_ARG_LEN];  /* Username */
+    struct sockaddr_storage port_addr;  /* Address used when PORT variant is issued */
+    int id;                   /* Connection ID */
+    int sockpi;               /* sockfd for protocol interpreter */
+    pthread_t listen_tid;     /* pthread ID for the thread listening in (e)passive mode */
     bool dtp_ready;           /* True if the DTP is configured and ready for communication */
     bool passive;             /* True for passive mode, false for port mode */
     bool extended;            /* True for extended mode, false for normal mode */
     bool auth;                /* True when the client is authenticated */
-    char cwd[PATH_MAX];       /* Current working directory */
-    char uname[MAX_ARG_LEN];
+    bool epsv_only;           /* True if EPSV ALL was received from the client */
 } state;
 
 /* Return a default reply string for a given reply code. */
@@ -165,7 +168,9 @@ static void reply_with(enum reply_code code, const char *msg, bool multiline) {
     if (send(state.sockpi, buf.arr, buf.size, 0) == -1) {
         logerr("Conn %d: failed to send reply (send: %s)", state.id, strerror(errno));
     } else {
-        loginfo("Conn %d: sent reply code %d", state.id, code);
+        buf.size -= 2;
+        vector_append(&buf, '\0');
+        loginfo("Conn %d: sent reply '%s'", state.id, buf.arr);
     }
     vector_free(&buf);
 }
@@ -209,6 +214,19 @@ static int construct_valid_path(char dst[PATH_MAX], const char path[MAX_ARG_LEN]
     } else {
         return -1;  /* Invalid path */
     }
+}
+
+static void *accept_connection(void *arg) {
+    int *socklisten = arg;
+    int *sockdtp = malloc(sizeof *sockdtp);
+    loginfo("Conn %d: waiting for connection from client...", state.id);
+    *sockdtp = accept(*socklisten, NULL, NULL);
+    if (*sockdtp) {
+        loginfo("Conn %d: client data connection established", state.id);
+    }
+    close(*socklisten);
+    free(socklisten);
+    return sockdtp;
 }
 
 static int connect_to_dtp() {
@@ -434,7 +452,89 @@ static void handle_EPRT(char *arg) {
 }
 
 static void handle_PASV(void) {
+    if (!state.auth) {
+        reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
+        return;
+    }
 
+    /* Create listen socket */
+    int *socklisten = malloc(sizeof *socklisten);
+    *socklisten = socket(AF_INET, SOCK_STREAM, 0);
+    if (*socklisten == -1) {
+        logerr("Conn %d: failed to create listen socket (socket: %s)",
+               state.id, strerror(errno));
+        reply_with(SYNTAX_ERR, "Server error", false);
+        goto err;
+    }
+    if (listen(*socklisten, 10) == -1) {
+        logerr("Conn %d: failed to listen on socket (listen: %s)",
+               state.id, strerror(errno));
+        reply_with(SYNTAX_ERR, "Server error", false);
+        goto err;
+    }
+
+    /* Start listen thread */
+    int err;
+    if ((err=pthread_create(&state.listen_tid, NULL, accept_connection, socklisten)) != 0) {
+        logerr("Conn %d: failed to start listen thread (pthread_create: %s)",
+               state.id, strerror(err));
+        reply_with(SYNTAX_ERR, "Server error", false);
+        goto err;
+    }
+
+    /* Construct reply */
+    struct sockaddr_storage addr_for_ip;
+    socklen_t addrlen_for_ip = sizeof addr_for_ip;
+    if (getsockname(state.sockpi, (struct sockaddr *)&addr_for_ip, &addrlen_for_ip) == -1) {
+        logerr("Conn %d: failed to get server ip (getsockname: %s)",
+               state.id, strerror(errno));
+        reply_with(SYNTAX_ERR, "Server error", false);
+        goto err;
+    }
+    if (addr_for_ip.ss_family != AF_INET) {
+        logerr("Conn %d: attempt to use PASV mode with IPv6 server not allowed");
+        reply_with(SYNTAX_ERR, "Cannot use PASV mode with IPv6 server", false);
+        goto err;
+    }
+    struct sockaddr_in addr_for_port = {0};
+    socklen_t addrlen = sizeof(addr_for_port);
+    if (getsockname(*socklisten, (struct sockaddr *)&addr_for_port, &addrlen) == -1) {
+        logerr("Conn %d: failed to get listening port (getsockname: %s)",
+               state.id, strerror(errno));
+        reply_with(SYNTAX_ERR, "Server error", false);
+        goto err;
+    }
+    char reply[128];
+    char buf[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &((struct sockaddr_in *)&addr_for_ip)->sin_addr, buf, sizeof buf);
+    in_port_t port = ntohs(addr_for_port.sin_port);
+    strcpy(reply, "Entering passive mode (");
+    strcat(reply, strtok(buf, "."));
+    strcat(reply, ",");
+    strcat(reply, strtok(NULL, "."));
+    strcat(reply, ",");
+    strcat(reply, strtok(NULL, "."));
+    strcat(reply, ",");
+    strcat(reply, strtok(NULL, "."));
+    strcat(reply, ",");
+    sprintf(buf, "%"PRIu16, (port>>8) & 0xFFU);
+    strcat(reply, buf);
+    strcat(reply, ",");
+    sprintf(buf, "%"PRIu16, port & 0xFFU);
+    strcat(reply, buf);
+    strcat(reply, ")");
+
+    /* Update state */
+    state.dtp_ready = true;
+    state.passive = true;
+    state.extended = false;
+    reply_with(COMMAND_OK, reply, false);
+    return;
+
+    err:
+    if (*socklisten >= 0)
+        close(*socklisten);
+    pthread_cancel(state.listen_tid);
 }
 
 static void handle_LIST(const char *path) {
@@ -457,7 +557,15 @@ static void handle_LIST(const char *path) {
     /* Establish data connection */
     int sockdtp;
     if (state.passive) {
-        /* TODO Handle PASV mode */
+        int *ret, err;
+        if ((err=pthread_join(state.listen_tid, (void **)&ret))) {
+            logerr("Conn %d: error waiting on listen thread (pthread_listen: %s)",
+                   state.id, strerror(err));
+            reply_with(ACTION_ABORTED, NULL, false);
+            return;
+        }
+        sockdtp = *ret;
+        free(ret);
     } else {
         sockdtp = connect_to_dtp();
         if (sockdtp == -1) {
@@ -493,9 +601,7 @@ static void handle_LIST(const char *path) {
 }
 
 /* Start handling commands from a newly connected client. */
-void handle_new_client(const int id, const int sockpi,
-                       struct sockaddr_storage *peeraddr,
-                       socklen_t peeraddrlen) {
+void handle_new_client(const int id, const int sockpi) {
     /* Initialize state */
     state.id = id;
     state.sockpi = sockpi;
@@ -549,6 +655,8 @@ void handle_new_client(const int id, const int sockpi,
             handle_PORT(arg);
         } else if (strcmp(cmd, "EPRT") == 0) {
             handle_EPRT(arg);
+        } else if (strcmp(cmd, "PASV") == 0) {
+            handle_PASV();
         } else if (strcmp(cmd, "LIST") == 0) {
             handle_LIST(arg);
         } else {
