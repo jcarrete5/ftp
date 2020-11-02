@@ -399,7 +399,7 @@ static void handle_send(const char *localpath) {
         reply_msg.size = 0;
         size_t read;
         while ((read=fread(databuf, sizeof *databuf, BUFSIZ, in_file)) > 0) {
-            if (send(sockdtp, databuf, BUFSIZ, 0) <= 0) {
+            if (send(sockdtp, databuf, read, 0) <= 0) {
                 perror("send");
                 goto exit;
             }
