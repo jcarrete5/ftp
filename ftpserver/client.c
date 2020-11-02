@@ -74,6 +74,7 @@ enum reply_code {
     SYNTAX_ERR_ARGS = 501,
     CMD_NOT_IMPL    = 502,
     BAD_SEQ         = 503,
+    EXTENDED_ERR    = 522,
     USER_LOGIN_FAIL = 530,
     NO_ACTION_PERM  = 550,
 };
@@ -381,6 +382,10 @@ static void handle_PORT(char *arg) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
         return;
     }
+    if (state.epsv_only) {
+        reply_with(SYNTAX_ERR, "Must use EPSV because EPSV ALL was previously specified", false);
+        return;
+    }
 
     char ipv4[INET_ADDRSTRLEN];
     ipv4[0] = '\0';
@@ -426,6 +431,10 @@ static void handle_EPRT(char *arg) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
         return;
     }
+    if (state.epsv_only) {
+        reply_with(SYNTAX_ERR, "Must use EPSV because EPSV ALL was previously specified", false);
+        return;
+    }
 
     /* Parse ip and port from arg */
     unsigned family = atoi(strtok(arg, "|"));
@@ -454,6 +463,10 @@ static void handle_EPRT(char *arg) {
 static void handle_PASV(void) {
     if (!state.auth) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
+        return;
+    }
+    if (state.epsv_only) {
+        reply_with(SYNTAX_ERR, "Must use EPSV because EPSV ALL was previously specified", false);
         return;
     }
 
@@ -535,6 +548,84 @@ static void handle_PASV(void) {
     if (*socklisten >= 0)
         close(*socklisten);
     pthread_cancel(state.listen_tid);
+}
+
+static void handle_EPSV(const char *arg) {
+    if (!state.auth) {
+        reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
+        return;
+    }
+
+    /* Create listen socket */
+    unsigned af;
+    if (strlen(arg) == 0) {
+        struct sockaddr_storage addr;
+        socklen_t addrlen = sizeof addr;
+        getsockname(state.sockpi, (struct sockaddr *)&addr, &addrlen);
+        af = addr.ss_family;
+    } else if (strcmp(arg, "1") == 0) {
+        af = AF_INET;
+    } else if (strcmp(arg, "2") == 0) {
+        af = AF_INET6;
+    } else if (strcmp(arg, "ALL") == 0){
+        af = AF_INET;
+        state.epsv_only = true;
+    } else {
+        reply_with(SYNTAX_ERR_ARGS, NULL, false);
+        return;
+    }
+    int *socklisten = malloc(sizeof *socklisten);
+    *socklisten = socket(af, SOCK_STREAM, 0);
+    if (*socklisten == -1) {
+        logerr("Conn %d: failed to create listen socket (socket: %s)",
+               state.id, strerror(errno));
+        reply_with(SYNTAX_ERR, "Server error", false);
+        goto err;
+    }
+    if (listen(*socklisten, 10) == -1) {
+        logerr("Conn %d: failed to listen on socket (listen: %s)",
+               state.id, strerror(errno));
+        reply_with(SYNTAX_ERR, "Server error", false);
+        goto err;
+    }
+
+    /* Start listen thread */
+    int err;
+    if ((err=pthread_create(&state.listen_tid, NULL, accept_connection, socklisten)) != 0) {
+        logerr("Conn %d: failed to start listen thread (pthread_create: %s)",
+               state.id, strerror(err));
+        reply_with(SYNTAX_ERR, "Server error", false);
+        goto err;
+    }
+
+    /* Construct reply */
+    struct sockaddr_storage addr_for_port = {0};
+    socklen_t addrlen = sizeof(addr_for_port);
+    if (getsockname(*socklisten, (struct sockaddr *)&addr_for_port, &addrlen) == -1) {
+        logerr("Conn %d: failed to get listening port (getsockname: %s)",
+               state.id, strerror(errno));
+        reply_with(SYNTAX_ERR, "Server error", false);
+        goto err;
+    }
+    char reply[128];
+    char *portstr = addrtostr(&addr_for_port);
+    portstr = strrchr(portstr, ':')+1;
+    strcpy(reply, "Entering extended passive mode (|||");
+    strcat(reply, portstr);
+    strcat(reply, "|)");
+
+    /* Update state */
+    state.dtp_ready = true;
+    state.passive = true;
+    state.extended = false;
+    reply_with(COMMAND_OK, reply, false);
+    return;
+
+    err:
+    if (*socklisten >= 0)
+        close(*socklisten);
+    pthread_cancel(state.listen_tid);
+    state.epsv_only = false;
 }
 
 static void handle_LIST(const char *path) {
@@ -803,6 +894,8 @@ void handle_new_client(const int id, const int sockpi) {
             handle_EPRT(arg);
         } else if (strcmp(cmd, "PASV") == 0) {
             handle_PASV();
+        } else if (strcmp(cmd, "EPSV") == 0) {
+            handle_EPSV(arg);
         } else if (strcmp(cmd, "LIST") == 0) {
             handle_LIST(arg);
         } else if (strcmp(cmd, "STOR") == 0) {
