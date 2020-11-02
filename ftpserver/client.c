@@ -403,6 +403,40 @@ static void handle_PORT(char *arg) {
     reply_with(COMMAND_OK, NULL, false);
 }
 
+static void handle_EPRT(char *arg) {
+    if (!state.auth) {
+        reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
+        return;
+    }
+
+    /* Parse ip and port from arg */
+    unsigned family = atoi(strtok(arg, "|"));
+    char *ipstr = strtok(NULL, "|");
+    in_port_t port = atoi(strtok(NULL, "|"));
+
+    /* Update state */
+    unsigned af = family == 1 ? AF_INET : AF_INET6;
+    state.port_addr.ss_family = af;
+    switch (af) {
+        case AF_INET:
+            inet_pton(af, ipstr, &((struct sockaddr_in *)&state.port_addr)->sin_addr);
+            ((struct sockaddr_in *)&state.port_addr)->sin_port = htons(port);
+            break;
+        case AF_INET6:
+            inet_pton(af, ipstr, &((struct sockaddr_in6 *)&state.port_addr)->sin6_addr);
+            ((struct sockaddr_in *)&state.port_addr)->sin_port = htons(port);
+            break;
+    }
+    state.dtp_ready = true;
+    state.passive = false;
+    state.extended = true;
+    reply_with(COMMAND_OK, NULL, false);
+}
+
+static void handle_PASV(void) {
+
+}
+
 static void handle_LIST(const char *path) {
     if (!state.auth) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
@@ -450,9 +484,12 @@ static void handle_LIST(const char *path) {
                     state.id, strerror(errno));
         }
     }
+
+    /* Cleanup */
     closedir(dir);
     close(sockdtp);
     reply_with(TX_COMPLETE, "Directory send OK", false);
+    state.dtp_ready = false;
 }
 
 /* Start handling commands from a newly connected client. */
@@ -510,6 +547,8 @@ void handle_new_client(const int id, const int sockpi,
             }
         } else if (strcmp(cmd, "PORT") == 0) {
             handle_PORT(arg);
+        } else if (strcmp(cmd, "EPRT") == 0) {
+            handle_EPRT(arg);
         } else if (strcmp(cmd, "LIST") == 0) {
             handle_LIST(arg);
         } else {
