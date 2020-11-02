@@ -34,7 +34,7 @@
 #define MAX_ARG_LEN 2048U
 
 /* Sorted list of supported commands. */
-const char *supported_cmds[] = {
+static const char *supported_cmds[] = {
     "CDUP",
     "CWD",
     "EPRT",
@@ -600,6 +600,152 @@ static void handle_LIST(const char *path) {
     state.dtp_ready = false;
 }
 
+static void handle_STOR(char *path) {
+    if (!state.auth) {
+        reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
+        return;
+    }
+    if (!state.dtp_ready) {
+        reply_with(NO_ACTION, "Specify data transfer control command first "
+                              "(i.e. PORT, PASV, EPRT, EPSV)", false);
+        return;
+    }
+
+    /* Validate path and open file for writing */
+    char canon[PATH_MAX];
+    char filename[PATH_MAX];
+    char *ptr = strrchr(path, '/');
+    if (!ptr) {
+        strcpy(filename, path);
+        *path = '\0';
+    } else {
+        *ptr = '\0';
+        strcpy(filename, ptr + 1);
+    }
+    if (construct_valid_path(canon, path) == -1) {
+        reply_with(SYNTAX_ERR_ARGS, "Illegal path", false);
+        return;
+    }
+    strcat(canon, "/");
+    strcat(canon, filename);
+    FILE *outfile = fopen(canon, "w");
+    if (!outfile) {
+        logerr("Conn %d: failed to open output file (fopen: %s)", state.id, strerror(errno));
+        reply_with(NO_ACTION, "Could not open output file", false);
+        return;
+    }
+    reply_with(OPENING_CONN, "Opening data connection", false);
+
+    /* Establish data connection */
+    int sockdtp = -1;
+    if (state.passive) {
+        int *ret, err;
+        if ((err=pthread_join(state.listen_tid, (void **)&ret))) {
+            logerr("Conn %d: error waiting on listen thread (pthread_listen: %s)",
+                   state.id, strerror(err));
+            reply_with(ACTION_ABORTED, NULL, false);
+            goto cleanup;
+        }
+        sockdtp = *ret;
+        free(ret);
+    } else {
+        sockdtp = connect_to_dtp();
+        if (sockdtp == -1) {
+            reply_with(NO_DATA_CONN, NULL, false);
+            goto cleanup;
+        }
+    }
+
+    /* Receive data and write to file */
+    uint8_t buf[BUFSIZ];
+    ssize_t read;
+    while ((read=recv(sockdtp, buf, sizeof buf, 0))) {
+        if (read < 0) {
+            logerr("Conn %d: error receiving data (recv: %s)", state.id, strerror(errno));
+            reply_with(ACTION_ABORTED, NULL, false);
+            goto cleanup;
+        } else {
+            if (fwrite(buf, sizeof *buf, read, outfile) < (size_t)read) {
+                logerr("Conn %d: failed to save some data to file (fwrite: %s)",
+                       state.id, strerror(errno));
+                reply_with(ACTION_ABORTED, NULL, false);
+                goto cleanup;
+            }
+        }
+    }
+    reply_with(TX_COMPLETE, "File transfer OK", false);
+
+    /* Cleanup */
+    cleanup:
+    if (outfile) fclose(outfile);
+    if (sockdtp > 0) close(sockdtp);
+    state.dtp_ready = false;
+}
+
+static void handle_RETR(char *path) {
+    if (!state.auth) {
+        reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
+        return;
+    }
+    if (!state.dtp_ready) {
+        reply_with(NO_ACTION, "Specify data transfer control command first "
+                              "(i.e. PORT, PASV, EPRT, EPSV)", false);
+        return;
+    }
+
+    /* Validate path and open file for reading */
+    char canon[PATH_MAX];
+    if (construct_valid_path(canon, path) == -1) {
+        reply_with(SYNTAX_ERR_ARGS, "Illegal path", false);
+        return;
+    }
+    FILE *infile = fopen(canon, "r");
+    if (!infile) {
+        logerr("Conn %d: failed to open output file (fopen: %s)", state.id, strerror(errno));
+        reply_with(NO_ACTION, "Could not open output file", false);
+        return;
+    }
+    reply_with(OPENING_CONN, "Opening data connection", false);
+
+    /* Establish data connection */
+    int sockdtp = -1;
+    if (state.passive) {
+        int *ret, err;
+        if ((err=pthread_join(state.listen_tid, (void **)&ret))) {
+            logerr("Conn %d: error waiting on listen thread (pthread_listen: %s)",
+                   state.id, strerror(err));
+            reply_with(ACTION_ABORTED, NULL, false);
+            goto cleanup;
+        }
+        sockdtp = *ret;
+        free(ret);
+    } else {
+        sockdtp = connect_to_dtp();
+        if (sockdtp == -1) {
+            reply_with(NO_DATA_CONN, NULL, false);
+            goto cleanup;
+        }
+    }
+
+    /* Send data to client */
+    uint8_t buf[BUFSIZ];
+    size_t read;
+    while ((read=fread(buf, sizeof *buf, BUFSIZ, infile)) > 0) {
+        if (send(sockdtp, buf, read, 0) == -1) {
+            logwarn("Conn %d: failed to send some data (send: %s)", state.id, strerror(errno));
+            reply_with(ACTION_ABORTED, NULL, false);
+            goto cleanup;
+        }
+    }
+    reply_with(TX_COMPLETE, "File transfer OK", false);
+
+    /* Cleanup */
+    cleanup:
+    if (infile) fclose(infile);
+    if (sockdtp > 0) close(sockdtp);
+    state.dtp_ready = false;
+}
+
 /* Start handling commands from a newly connected client. */
 void handle_new_client(const int id, const int sockpi) {
     /* Initialize state */
@@ -659,6 +805,10 @@ void handle_new_client(const int id, const int sockpi) {
             handle_PASV();
         } else if (strcmp(cmd, "LIST") == 0) {
             handle_LIST(arg);
+        } else if (strcmp(cmd, "STOR") == 0) {
+            handle_STOR(arg);
+        } else if (strcmp(cmd, "RETR") == 0) {
+            handle_RETR(arg);
         } else {
             logwarn("Conn %d: unknown command '%s'", state.id, cmd);
             reply_with(CMD_NOT_IMPL, NULL, false);
