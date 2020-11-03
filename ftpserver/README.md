@@ -111,3 +111,5 @@ The second sample run of the server handles both clients concurrently.
 
 Other files in the `logs/` subdirectory are gzipped txt files with all log
 data from my debugging runs.
+
+A sample FTP server DFA can be seen in `samples/ftpserver/DFA.pdf`
