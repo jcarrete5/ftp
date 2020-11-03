@@ -18,8 +18,9 @@
 #include "log.h"
 #include "auth.h"
 
-#define AUTH_FILE "out/etc/ftps_passwd"  /* This is pretty inflexible but ¯\_(ツ)_/¯ */
+#define AUTH_FILE "out/etc/ftps_passwd"
 
+/* Read passwords from the password file into a hashtable. */
 void auth_read_passwd(void) {
     FILE *passwd_file = fopen(AUTH_FILE, "r");
     if (!passwd_file) {
@@ -43,6 +44,7 @@ void auth_read_passwd(void) {
     fclose(passwd_file);
 }
 
+/* Return true if the uname is in the passwd database. */
 bool valid_user(const char *uname) {
     char cpy[strlen(uname)+1];
     strcpy(cpy, uname);
@@ -51,6 +53,7 @@ bool valid_user(const char *uname) {
     return (bool)found;
 }
 
+/* Return true if the passwd is correct for the given uname. */
 bool valid_password(const char *uname, const char *passwd) {
     char cpy[strlen(uname)+1];
     strcpy(cpy, uname);

@@ -33,7 +33,7 @@
 #define DATA_ROOT_PREFIX "./out/srv/ftps"
 #define MAX_ARG_LEN 2048U
 
-/* Sorted list of supported commands. */
+/* Sorted (ascending) list of supported commands. */
 static const char *supported_cmds[] = {
     "CDUP",
     "CWD",
@@ -82,6 +82,7 @@ enum reply_code {
 /* Buffer for data received from server-PI. */
 static struct sockbuf pi_buf = {0};
 
+/* Absolute path of the server data directory */
 static char root[PATH_MAX];
 /* State for the client connection. */
 static struct {
@@ -217,6 +218,7 @@ static int construct_valid_path(char dst[PATH_MAX], const char path[MAX_ARG_LEN]
     }
 }
 
+/* Thread function returning an accepted socket. */
 static void *accept_connection(void *arg) {
     int *socklisten = arg;
     int *sockdtp = malloc(sizeof *sockdtp);
@@ -230,6 +232,7 @@ static void *accept_connection(void *arg) {
     return sockdtp;
 }
 
+/* Connect to the client DTP and return the socket or -1 on error. */
 static int connect_to_dtp() {
     int sockdtp = -1;
     socklen_t addrlen = state.port_addr.ss_family == AF_INET ?
@@ -314,6 +317,7 @@ static int get_next_cmd(char cmd[5], char arg[], size_t arglen) {
     return -1;
 }
 
+/* Handle USER command from client. */
 static void handle_USER(const char uname[MAX_ARG_LEN]) {
     state.auth = false;
     if (valid_user(uname)) {
@@ -324,6 +328,7 @@ static void handle_USER(const char uname[MAX_ARG_LEN]) {
     }
 }
 
+/* Handle PASS command from client. */
 static void handle_PASS(const char passwd[MAX_ARG_LEN]) {
     if (strlen(state.uname) > 0) {
         if (valid_password(state.uname, passwd)) {
@@ -341,10 +346,12 @@ static void handle_PASS(const char passwd[MAX_ARG_LEN]) {
     }
 }
 
+/* Handle QUIT command from client. */
 static void handle_QUIT(void) {
     reply_with(CLOSING_CONN, NULL, false);
 }
 
+/* Handle PWD command from client. */
 static void handle_PWD(void) {
     if (!state.auth) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
@@ -353,6 +360,7 @@ static void handle_PWD(void) {
     reply_with(PATH_CREATED, state.cwd, false);
 }
 
+/* Handle CWD command from client. */
 static void handle_CWD(const char path[MAX_ARG_LEN]) {
     if (!state.auth) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
@@ -377,6 +385,7 @@ static void handle_CWD(const char path[MAX_ARG_LEN]) {
     }
 }
 
+/* Handle PORT command from client. */
 static void handle_PORT(char *arg) {
     if (!state.auth) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
@@ -426,6 +435,7 @@ static void handle_PORT(char *arg) {
     reply_with(COMMAND_OK, NULL, false);
 }
 
+/* Handle EPRT command from client. */
 static void handle_EPRT(char *arg) {
     if (!state.auth) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
@@ -460,6 +470,7 @@ static void handle_EPRT(char *arg) {
     reply_with(COMMAND_OK, NULL, false);
 }
 
+/* Handle PASV command from client. */
 static void handle_PASV(void) {
     if (!state.auth) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
@@ -550,6 +561,7 @@ static void handle_PASV(void) {
     pthread_cancel(state.listen_tid);
 }
 
+/* Handle EPSV command from client. */
 static void handle_EPSV(const char *arg) {
     if (!state.auth) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
@@ -628,6 +640,7 @@ static void handle_EPSV(const char *arg) {
     state.epsv_only = false;
 }
 
+/* Handle LIST command from client. */
 static void handle_LIST(const char *path) {
     if (!state.auth) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
@@ -691,6 +704,7 @@ static void handle_LIST(const char *path) {
     state.dtp_ready = false;
 }
 
+/* Handle STOR command from client. */
 static void handle_STOR(char *path) {
     if (!state.auth) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
@@ -773,6 +787,7 @@ static void handle_STOR(char *path) {
     state.dtp_ready = false;
 }
 
+/* Handle RETR command from client. */
 static void handle_RETR(char *path) {
     if (!state.auth) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
