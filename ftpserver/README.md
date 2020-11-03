@@ -40,5 +40,16 @@ The data directory template is located in `samples/ftpserver/ftps_root`. It
 contains files and subdirectories used for testing and debugging the server.
 The directory and its contents are copied to `srv/ftps/` on install.
 
+Samples
+-------
+The samples directory also contains log files from sample runs of my client
+and server. The first sample server run is between my client and server and
+then between the inetutils FTP client and my server.
+
+The second sample run of the server handles both clients concurrently.
+
+Other files in the `logs/` subdirectory are gzipped txt files with all log
+data from my debugging runs.
+
 Notes
 -----

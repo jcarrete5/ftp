@@ -1,0 +1,57 @@
+Tue Nov  3 13:19:18 2020 [INFO] Main: now accepting connections
+Tue Nov  3 13:19:28 2020 [INFO] Main: accepted a connection from 127.0.0.1:44776
+Tue Nov  3 13:19:28 2020 [INFO] Conn 1: sent reply '220 Service ready for new user.'
+Tue Nov  3 13:19:32 2020 [INFO] Conn 1: received USER
+Tue Nov  3 13:19:32 2020 [INFO] Conn 1: sent reply '331 User name okay, need password.'
+Tue Nov  3 13:19:34 2020 [INFO] Conn 1: received PASS
+Tue Nov  3 13:19:34 2020 [INFO] Conn 1: sent reply '230 User logged in, proceed.'
+Tue Nov  3 13:19:38 2020 [INFO] Main: accepted a connection from 127.0.0.1:44780
+Tue Nov  3 13:19:38 2020 [INFO] Conn 2: sent reply '220 Service ready for new user.'
+Tue Nov  3 13:19:42 2020 [INFO] Conn 2: received USER
+Tue Nov  3 13:19:42 2020 [INFO] Conn 2: sent reply '331 User name okay, need password.'
+Tue Nov  3 13:19:44 2020 [INFO] Conn 2: received PASS
+Tue Nov  3 13:19:44 2020 [INFO] Conn 2: sent reply '230 User logged in, proceed.'
+Tue Nov  3 13:19:44 2020 [WARN] Conn 2: unsupported command 'SYST'; resetting pi_buf
+Tue Nov  3 13:19:44 2020 [INFO] Conn 2: sent reply '502 Command not implemented.'
+Tue Nov  3 13:19:52 2020 [INFO] Conn 1: received PASV
+Tue Nov  3 13:19:52 2020 [INFO] Conn 1: waiting for connection from client...
+Tue Nov  3 13:19:52 2020 [INFO] Conn 1: sent reply '227 Entering passive mode (127,0,0,1,210,237)'
+Tue Nov  3 13:19:52 2020 [INFO] Conn 1: client data connection established
+Tue Nov  3 13:19:52 2020 [INFO] Conn 1: received LIST
+Tue Nov  3 13:19:52 2020 [INFO] Conn 1: sent reply '150 Here comes the directory listing'
+Tue Nov  3 13:19:52 2020 [INFO] Conn 1: sent reply '226 Directory send OK'
+Tue Nov  3 13:19:54 2020 [INFO] Conn 2: received PORT
+Tue Nov  3 13:19:54 2020 [INFO] Conn 2: PORT address is 127.0.0.1:38461
+Tue Nov  3 13:19:54 2020 [INFO] Conn 2: sent reply '200 Command okay.'
+Tue Nov  3 13:19:54 2020 [INFO] Conn 2: received LIST
+Tue Nov  3 13:19:54 2020 [INFO] Conn 2: sent reply '150 Here comes the directory listing'
+Tue Nov  3 13:19:54 2020 [INFO] Conn 2: sent reply '226 Directory send OK'
+Tue Nov  3 13:20:18 2020 [INFO] Conn 1: received PASV
+Tue Nov  3 13:20:18 2020 [INFO] Conn 1: waiting for connection from client...
+Tue Nov  3 13:20:18 2020 [INFO] Conn 1: sent reply '227 Entering passive mode (127,0,0,1,153,231)'
+Tue Nov  3 13:20:18 2020 [INFO] Conn 1: client data connection established
+Tue Nov  3 13:20:18 2020 [INFO] Conn 1: received STOR
+Tue Nov  3 13:20:18 2020 [INFO] Conn 1: sent reply '150 Opening data connection'
+Tue Nov  3 13:20:18 2020 [INFO] Conn 1: sent reply '226 File transfer OK'
+Tue Nov  3 13:20:31 2020 [INFO] Conn 2: received PASV
+Tue Nov  3 13:20:31 2020 [INFO] Conn 2: sent reply '227 Entering passive mode (127,0,0,1,231,179)'
+Tue Nov  3 13:20:31 2020 [INFO] Conn 2: waiting for connection from client...
+Tue Nov  3 13:20:31 2020 [INFO] Conn 2: client data connection established
+Tue Nov  3 13:20:31 2020 [INFO] Conn 2: received RETR
+Tue Nov  3 13:20:31 2020 [INFO] Conn 2: sent reply '150 Opening data connection'
+Tue Nov  3 13:20:31 2020 [INFO] Conn 2: sent reply '226 File transfer OK'
+Tue Nov  3 13:20:53 2020 [INFO] Conn 1: received PASV
+Tue Nov  3 13:20:53 2020 [INFO] Conn 1: waiting for connection from client...
+Tue Nov  3 13:20:53 2020 [INFO] Conn 1: sent reply '227 Entering passive mode (127,0,0,1,224,205)'
+Tue Nov  3 13:20:53 2020 [INFO] Conn 1: client data connection established
+Tue Nov  3 13:20:53 2020 [INFO] Conn 1: received RETR
+Tue Nov  3 13:20:53 2020 [WARN] Conn 1: failed canonicalizing '/home/jasonc/school/cs472/build/out/srv/ftps/nosuchfile.txt' (realpath: No such file or directory)
+Tue Nov  3 13:20:53 2020 [INFO] Conn 1: sent reply '501 Illegal path'
+Tue Nov  3 13:21:17 2020 [INFO] Conn 1: received QUIT
+Tue Nov  3 13:21:17 2020 [INFO] Conn 1: sent reply '221 Service closing control connection.'
+Tue Nov  3 13:21:17 2020 [INFO] Main: got SIGCHLD
+Tue Nov  3 13:21:19 2020 [INFO] Conn 2: received QUIT
+Tue Nov  3 13:21:19 2020 [INFO] Conn 2: sent reply '221 Service closing control connection.'
+Tue Nov  3 13:21:19 2020 [INFO] Main: got SIGCHLD
+Tue Nov  3 13:21:21 2020 [INFO] Main: keyboard interrupt
+Tue Nov  3 13:21:21 2020 [INFO] Main: no longer accepting connections

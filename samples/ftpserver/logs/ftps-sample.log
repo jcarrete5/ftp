@@ -1,0 +1,121 @@
+Tue Nov  3 13:11:32 2020 [INFO] Main: now accepting connections
+Tue Nov  3 13:12:19 2020 [INFO] Main: accepted a connection from 127.0.0.1:44700
+Tue Nov  3 13:12:19 2020 [INFO] Conn 1: sent reply '220 Service ready for new user.'
+Tue Nov  3 13:12:21 2020 [INFO] Conn 1: received USER
+Tue Nov  3 13:12:21 2020 [INFO] Conn 1: sent reply '331 User name okay, need password.'
+Tue Nov  3 13:12:23 2020 [INFO] Conn 1: received PASS
+Tue Nov  3 13:12:23 2020 [INFO] Conn 1: sent reply '230 User logged in, proceed.'
+Tue Nov  3 13:12:32 2020 [INFO] Conn 1: received PASV
+Tue Nov  3 13:12:32 2020 [INFO] Conn 1: waiting for connection from client...
+Tue Nov  3 13:12:32 2020 [INFO] Conn 1: sent reply '227 Entering passive mode (127,0,0,1,134,95)'
+Tue Nov  3 13:12:32 2020 [INFO] Conn 1: client data connection established
+Tue Nov  3 13:12:32 2020 [INFO] Conn 1: received LIST
+Tue Nov  3 13:12:32 2020 [INFO] Conn 1: sent reply '150 Here comes the directory listing'
+Tue Nov  3 13:12:32 2020 [INFO] Conn 1: sent reply '226 Directory send OK'
+Tue Nov  3 13:12:36 2020 [INFO] Conn 1: received PORT
+Tue Nov  3 13:12:36 2020 [INFO] Conn 1: PORT address is 127.0.0.1:38477
+Tue Nov  3 13:12:36 2020 [INFO] Conn 1: sent reply '200 Command okay.'
+Tue Nov  3 13:12:36 2020 [INFO] Conn 1: received LIST
+Tue Nov  3 13:12:36 2020 [INFO] Conn 1: sent reply '150 Here comes the directory listing'
+Tue Nov  3 13:12:36 2020 [INFO] Conn 1: sent reply '226 Directory send OK'
+Tue Nov  3 13:12:41 2020 [INFO] Conn 1: received EPSV
+Tue Nov  3 13:12:41 2020 [INFO] Conn 1: waiting for connection from client...
+Tue Nov  3 13:12:41 2020 [INFO] Conn 1: sent reply '229 Entering extended passive mode (|||42481|)'
+Tue Nov  3 13:12:41 2020 [INFO] Conn 1: client data connection established
+Tue Nov  3 13:12:41 2020 [INFO] Conn 1: received LIST
+Tue Nov  3 13:12:41 2020 [INFO] Conn 1: sent reply '150 Here comes the directory listing'
+Tue Nov  3 13:12:41 2020 [INFO] Conn 1: sent reply '226 Directory send OK'
+Tue Nov  3 13:12:47 2020 [INFO] Conn 1: received EPRT
+Tue Nov  3 13:12:47 2020 [INFO] Conn 1: sent reply '200 Command okay.'
+Tue Nov  3 13:12:47 2020 [INFO] Conn 1: received LIST
+Tue Nov  3 13:12:47 2020 [INFO] Conn 1: sent reply '150 Here comes the directory listing'
+Tue Nov  3 13:12:47 2020 [INFO] Conn 1: sent reply '226 Directory send OK'
+Tue Nov  3 13:12:50 2020 [INFO] Conn 1: received PWD
+Tue Nov  3 13:12:50 2020 [INFO] Conn 1: sent reply '257 /'
+Tue Nov  3 13:12:56 2020 [INFO] Conn 1: received CWD
+Tue Nov  3 13:12:56 2020 [INFO] Conn 1: changed dir to '/home/jasonc/school/cs472/build/out/srv/ftps/subd'; cwd=/subd/
+Tue Nov  3 13:12:56 2020 [INFO] Conn 1: sent reply '250 Requested file action okay, completed.'
+Tue Nov  3 13:12:57 2020 [INFO] Conn 1: received EPRT
+Tue Nov  3 13:12:57 2020 [INFO] Conn 1: sent reply '200 Command okay.'
+Tue Nov  3 13:12:57 2020 [INFO] Conn 1: received LIST
+Tue Nov  3 13:12:57 2020 [INFO] Conn 1: sent reply '150 Here comes the directory listing'
+Tue Nov  3 13:12:57 2020 [INFO] Conn 1: sent reply '226 Directory send OK'
+Tue Nov  3 13:13:06 2020 [INFO] Conn 1: received EPRT
+Tue Nov  3 13:13:06 2020 [INFO] Conn 1: sent reply '200 Command okay.'
+Tue Nov  3 13:13:06 2020 [INFO] Conn 1: received RETR
+Tue Nov  3 13:13:06 2020 [INFO] Conn 1: sent reply '150 Opening data connection'
+Tue Nov  3 13:13:06 2020 [INFO] Conn 1: sent reply '226 File transfer OK'
+Tue Nov  3 13:13:23 2020 [INFO] Conn 1: received EPRT
+Tue Nov  3 13:13:23 2020 [INFO] Conn 1: sent reply '200 Command okay.'
+Tue Nov  3 13:13:23 2020 [INFO] Conn 1: received STOR
+Tue Nov  3 13:13:23 2020 [INFO] Conn 1: sent reply '150 Opening data connection'
+Tue Nov  3 13:13:23 2020 [INFO] Conn 1: sent reply '226 File transfer OK'
+Tue Nov  3 13:13:39 2020 [INFO] Conn 1: received QUIT
+Tue Nov  3 13:13:39 2020 [INFO] Conn 1: sent reply '221 Service closing control connection.'
+Tue Nov  3 13:13:39 2020 [INFO] Main: got SIGCHLD
+Tue Nov  3 13:13:51 2020 [INFO] Main: accepted a connection from 127.0.0.1:44722
+Tue Nov  3 13:13:51 2020 [INFO] Conn 2: sent reply '220 Service ready for new user.'
+Tue Nov  3 13:13:55 2020 [INFO] Conn 2: received USER
+Tue Nov  3 13:13:55 2020 [INFO] Conn 2: sent reply '331 User name okay, need password.'
+Tue Nov  3 13:13:57 2020 [INFO] Conn 2: received PASS
+Tue Nov  3 13:13:57 2020 [INFO] Conn 2: sent reply '230 User logged in, proceed.'
+Tue Nov  3 13:13:57 2020 [WARN] Conn 2: unsupported command 'SYST'; resetting pi_buf
+Tue Nov  3 13:13:57 2020 [INFO] Conn 2: sent reply '502 Command not implemented.'
+Tue Nov  3 13:13:59 2020 [INFO] Conn 2: received PORT
+Tue Nov  3 13:13:59 2020 [INFO] Conn 2: PORT address is 127.0.0.1:32973
+Tue Nov  3 13:13:59 2020 [INFO] Conn 2: sent reply '200 Command okay.'
+Tue Nov  3 13:13:59 2020 [INFO] Conn 2: received LIST
+Tue Nov  3 13:13:59 2020 [INFO] Conn 2: sent reply '150 Here comes the directory listing'
+Tue Nov  3 13:13:59 2020 [INFO] Conn 2: sent reply '226 Directory send OK'
+Tue Nov  3 13:14:01 2020 [INFO] Conn 2: received PASV
+Tue Nov  3 13:14:01 2020 [INFO] Conn 2: waiting for connection from client...
+Tue Nov  3 13:14:01 2020 [INFO] Conn 2: sent reply '227 Entering passive mode (127,0,0,1,221,197)'
+Tue Nov  3 13:14:01 2020 [INFO] Conn 2: client data connection established
+Tue Nov  3 13:14:01 2020 [INFO] Conn 2: received LIST
+Tue Nov  3 13:14:01 2020 [INFO] Conn 2: sent reply '150 Here comes the directory listing'
+Tue Nov  3 13:14:01 2020 [INFO] Conn 2: sent reply '226 Directory send OK'
+Tue Nov  3 13:14:14 2020 [INFO] Conn 2: received PASV
+Tue Nov  3 13:14:14 2020 [INFO] Conn 2: waiting for connection from client...
+Tue Nov  3 13:14:14 2020 [INFO] Conn 2: sent reply '227 Entering passive mode (127,0,0,1,183,227)'
+Tue Nov  3 13:14:14 2020 [INFO] Conn 2: client data connection established
+Tue Nov  3 13:14:14 2020 [INFO] Conn 2: received RETR
+Tue Nov  3 13:14:14 2020 [INFO] Conn 2: sent reply '150 Opening data connection'
+Tue Nov  3 13:14:14 2020 [INFO] Conn 2: sent reply '226 File transfer OK'
+Tue Nov  3 13:14:29 2020 [INFO] Conn 2: received PASV
+Tue Nov  3 13:14:29 2020 [INFO] Conn 2: waiting for connection from client...
+Tue Nov  3 13:14:29 2020 [INFO] Conn 2: sent reply '227 Entering passive mode (127,0,0,1,149,29)'
+Tue Nov  3 13:14:29 2020 [INFO] Conn 2: client data connection established
+Tue Nov  3 13:14:29 2020 [INFO] Conn 2: received STOR
+Tue Nov  3 13:14:29 2020 [INFO] Conn 2: sent reply '150 Opening data connection'
+Tue Nov  3 13:14:29 2020 [INFO] Conn 2: sent reply '226 File transfer OK'
+Tue Nov  3 13:14:43 2020 [INFO] Conn 2: received CWD
+Tue Nov  3 13:14:43 2020 [INFO] Conn 2: changed dir to '/home/jasonc/school/cs472/build/out/srv/ftps/subd'; cwd=/subd/
+Tue Nov  3 13:14:43 2020 [INFO] Conn 2: sent reply '250 Requested file action okay, completed.'
+Tue Nov  3 13:14:45 2020 [INFO] Conn 2: received CDUP
+Tue Nov  3 13:14:45 2020 [INFO] Conn 2: changed dir to '/home/jasonc/school/cs472/build/out/srv/ftps'; cwd=/
+Tue Nov  3 13:14:45 2020 [INFO] Conn 2: sent reply '250 Requested file action okay, completed.'
+Tue Nov  3 13:14:47 2020 [INFO] Conn 2: received CWD
+Tue Nov  3 13:14:47 2020 [INFO] Conn 2: changed dir to '/home/jasonc/school/cs472/build/out/srv/ftps/subd'; cwd=/subd/
+Tue Nov  3 13:14:47 2020 [INFO] Conn 2: sent reply '250 Requested file action okay, completed.'
+Tue Nov  3 13:14:50 2020 [INFO] Conn 2: received CWD
+Tue Nov  3 13:14:50 2020 [INFO] Conn 2: changed dir to '/home/jasonc/school/cs472/build/out/srv/ftps'; cwd=/
+Tue Nov  3 13:14:50 2020 [INFO] Conn 2: sent reply '250 Requested file action okay, completed.'
+Tue Nov  3 13:14:51 2020 [INFO] Conn 2: received PWD
+Tue Nov  3 13:14:51 2020 [INFO] Conn 2: sent reply '257 /'
+Tue Nov  3 13:14:55 2020 [INFO] Conn 2: received CWD
+Tue Nov  3 13:14:55 2020 [INFO] Conn 2: changed dir to '/home/jasonc/school/cs472/build/out/srv/ftps/subd'; cwd=/subd/
+Tue Nov  3 13:14:55 2020 [INFO] Conn 2: sent reply '250 Requested file action okay, completed.'
+Tue Nov  3 13:14:56 2020 [INFO] Conn 2: received PWD
+Tue Nov  3 13:14:56 2020 [INFO] Conn 2: sent reply '257 /subd/'
+Tue Nov  3 13:14:57 2020 [INFO] Conn 2: received PASV
+Tue Nov  3 13:14:57 2020 [INFO] Conn 2: waiting for connection from client...
+Tue Nov  3 13:14:57 2020 [INFO] Conn 2: sent reply '227 Entering passive mode (127,0,0,1,133,205)'
+Tue Nov  3 13:14:57 2020 [INFO] Conn 2: client data connection established
+Tue Nov  3 13:14:57 2020 [INFO] Conn 2: received LIST
+Tue Nov  3 13:14:57 2020 [INFO] Conn 2: sent reply '150 Here comes the directory listing'
+Tue Nov  3 13:14:57 2020 [INFO] Conn 2: sent reply '226 Directory send OK'
+Tue Nov  3 13:14:59 2020 [INFO] Conn 2: received QUIT
+Tue Nov  3 13:14:59 2020 [INFO] Conn 2: sent reply '221 Service closing control connection.'
+Tue Nov  3 13:14:59 2020 [INFO] Main: got SIGCHLD
+Tue Nov  3 13:15:02 2020 [INFO] Main: keyboard interrupt
+Tue Nov  3 13:15:02 2020 [INFO] Main: no longer accepting connections

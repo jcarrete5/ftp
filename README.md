@@ -16,7 +16,13 @@ this README)
 
 Run cmake to generate a buildsystem
 
-    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=out ../
+    CC=clang CXX=clang++ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=out ../
+
+*The app should run fine under the `Release` build type but if it doesn't, run
+`make edit_cache` and change CMAKE_BUILD_TYPE to `Debug`. If make edit cache
+doesn't work, then manually edit `CMakeCache.txt` found in the build
+directory and update the variable there. Then recompile the app as specified
+below.*
 
 Compile sources and install
 

@@ -1,0 +1,26 @@
+Tue Nov  3 13:19:28 2020 [INFO] Trying ::1
+Tue Nov  3 13:19:28 2020 [WARN] Failed to connect to ::1; trying another address
+Tue Nov  3 13:19:28 2020 [INFO] Trying 127.0.0.1
+Tue Nov  3 13:19:28 2020 [INFO] Connected to 127.0.0.1
+Tue Nov  3 13:19:28 2020 [INFO] Received: 220 Service ready for new user.
+Tue Nov  3 13:19:32 2020 [INFO] Sent: USER alice
+Tue Nov  3 13:19:32 2020 [INFO] Received: 331 User name okay, need password.
+Tue Nov  3 13:19:34 2020 [INFO] Sent: PASS blowfish
+Tue Nov  3 13:19:34 2020 [INFO] Received: 230 User logged in, proceed.
+Tue Nov  3 13:19:52 2020 [INFO] Sent: PASV
+Tue Nov  3 13:19:52 2020 [INFO] Received: 227 Entering passive mode (127,0,0,1,210,237)
+Tue Nov  3 13:19:52 2020 [INFO] Sent: LIST
+Tue Nov  3 13:19:52 2020 [INFO] Received: 150 Here comes the directory listing
+Tue Nov  3 13:19:52 2020 [INFO] Received: 226 Directory send OK
+Tue Nov  3 13:20:18 2020 [INFO] Sent: PASV
+Tue Nov  3 13:20:18 2020 [INFO] Received: 227 Entering passive mode (127,0,0,1,153,231)
+Tue Nov  3 13:20:18 2020 [INFO] Sent: STOR boom.txt
+Tue Nov  3 13:20:18 2020 [INFO] Received: 150 Opening data connection
+Tue Nov  3 13:20:18 2020 [INFO] Received: 226 File transfer OK
+Tue Nov  3 13:20:53 2020 [INFO] Sent: PASV
+Tue Nov  3 13:20:53 2020 [INFO] Received: 227 Entering passive mode (127,0,0,1,224,205)
+Tue Nov  3 13:20:53 2020 [INFO] Sent: RETR nosuchfile.txt
+Tue Nov  3 13:20:53 2020 [INFO] Received: 501 Illegal path
+Tue Nov  3 13:21:17 2020 [INFO] Sent: QUIT
+Tue Nov  3 13:21:17 2020 [INFO] Received: 221 Service closing control connection.
+Tue Nov  3 13:21:17 2020 [INFO] Closing user-PI socket
