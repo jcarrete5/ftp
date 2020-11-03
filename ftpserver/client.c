@@ -61,6 +61,8 @@ enum reply_code {
     SERVER_READY    = 220,
     CLOSING_CONN    = 221,
     TX_COMPLETE     = 226,
+    PASV_MODE       = 227,
+    EPSV_MODE       = 229,
     USER_LOGGED_IN  = 230,
     FILE_ACT_OK     = 250,
     PATH_CREATED    = 257,

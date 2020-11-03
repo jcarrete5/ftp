@@ -12,6 +12,33 @@ Questions
 
 Supported Commands
 ------------------
+- CDUP
+- CWD
+- EPRT
+- EPSV
+- LIST
+- PASS
+- PASV
+- PORT
+- PWD
+- QUIT
+- RETR
+- STOR
+- USER
+
+Accounts
+--------
+Accounts are managed in the ftps_passwd file found in
+`samples/ftpserver/ftps_passwd`. This file is copied into `etc/` in the build
+directory during `make install`. Each line is a username followed by a comma,
+followed by a plain-text password (This is bad but I didn't want to hassle
+with encryption and is easier for debugging).
+
+Data
+----
+The data directory template is located in `samples/ftpserver/ftps_root`. It
+contains files and subdirectories used for testing and debugging the server.
+The directory and its contents are copied to `srv/ftps/` on install.
 
 Notes
 -----

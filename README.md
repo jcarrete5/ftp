@@ -9,7 +9,8 @@ client and server implementations.
 
 Build Instructions
 ------------------
-Create a directory for output files
+Create a directory for output files in the project root (same location as
+this README)
 
     mkdir build && cd build
 

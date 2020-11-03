@@ -28,6 +28,7 @@
 #include "client.h"
 #include "auth.h"
 
+/* True while the server is accepting connections. Set to false to stop. */
 static bool accept_connections = true;
 
 /* Print usage information. */
