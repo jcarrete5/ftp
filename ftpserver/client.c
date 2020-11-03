@@ -552,7 +552,7 @@ static void handle_PASV(void) {
     state.dtp_ready = true;
     state.passive = true;
     state.extended = false;
-    reply_with(COMMAND_OK, reply, false);
+    reply_with(PASV_MODE, reply, false);
     return;
 
     err:
@@ -630,7 +630,7 @@ static void handle_EPSV(const char *arg) {
     state.dtp_ready = true;
     state.passive = true;
     state.extended = false;
-    reply_with(COMMAND_OK, reply, false);
+    reply_with(EPSV_MODE, reply, false);
     return;
 
     err:
