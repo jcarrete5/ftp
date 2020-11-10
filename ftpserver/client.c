@@ -29,6 +29,7 @@
 #include "vector.h"
 #include "auth.h"
 #include "misc.h"
+#include "cfgparse.h"
 
 #define DATA_ROOT_PREFIX "./out/srv/ftps"
 #define MAX_ARG_LEN 2048U
@@ -397,6 +398,10 @@ static void handle_PORT(char *arg) {
         reply_with(SYNTAX_ERR, "Must use EPSV because EPSV ALL was previously specified", false);
         return;
     }
+    if (!ftps_config.port_mode_enabled) {
+        reply_with(SYNTAX_ERR, "PORT is not allowed on the server", false);
+        return;
+    }
 
     char ipv4[INET_ADDRSTRLEN];
     ipv4[0] = '\0';
@@ -447,6 +452,10 @@ static void handle_EPRT(char *arg) {
         reply_with(SYNTAX_ERR, "Must use EPSV because EPSV ALL was previously specified", false);
         return;
     }
+    if (!ftps_config.port_mode_enabled) {
+        reply_with(SYNTAX_ERR, "EPRT is not allowed on the server", false);
+        return;
+    }
 
     /* Parse ip and port from arg */
     unsigned family = atoi(strtok(arg, "|"));
@@ -480,6 +489,10 @@ static void handle_PASV(void) {
     }
     if (state.epsv_only) {
         reply_with(SYNTAX_ERR, "Must use EPSV because EPSV ALL was previously specified", false);
+        return;
+    }
+    if (!ftps_config.pasv_mode_enabled) {
+        reply_with(SYNTAX_ERR, "PASV is not allowed on the server", false);
         return;
     }
 
@@ -567,6 +580,10 @@ static void handle_PASV(void) {
 static void handle_EPSV(const char *arg) {
     if (!state.auth) {
         reply_with(USER_LOGIN_FAIL, "Must be authenticated to run this command", false);
+        return;
+    }
+    if (!ftps_config.pasv_mode_enabled) {
+        reply_with(SYNTAX_ERR, "EPSV is not allowed on the server", false);
         return;
     }
 

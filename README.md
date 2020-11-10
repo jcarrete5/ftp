@@ -7,6 +7,8 @@ questions are answered in the READMEs in the `ftpclient/` and `ftpserver/`
 subdirectories. The `common/` subdirectory contains source code common to both
 client and server implementations.
 
+Homework 4 questions are answered in `HW4.pdf`
+
 Build Instructions
 ------------------
 Create a directory for output files in the project root (same location as

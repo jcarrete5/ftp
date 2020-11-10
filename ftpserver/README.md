@@ -101,6 +101,13 @@ The data directory template is located in `samples/ftpserver/ftps_root`. It
 contains files and subdirectories used for testing and debugging the server.
 The directory and its contents are copied to `srv/ftps/` on install.
 
+Configuration
+-------------
+The server configuration is the file `ftps.conf`. A template config file is
+located in `samples/ftpserver/ftps.conf`. This file is copied into `etc/` in
+the build directory during `make install`. Its format is described as a
+comment within the sample file.
+
 Samples
 -------
 The samples directory also contains log files from sample runs of my client

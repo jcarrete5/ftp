@@ -27,6 +27,9 @@
 #include "misc.h"
 #include "client.h"
 #include "auth.h"
+#include "cfgparse.h"
+
+#include <openssl/ssl.h>
 
 /* True while the server is accepting connections. Set to false to stop. */
 static bool accept_connections = true;
@@ -154,6 +157,7 @@ int main(int argc, char *argv[]) {
     uint16_t port = valid_port(portstr);
     loginit(logpathstr);
     setup_sighandlers();
+    read_cfg();
     auth_read_passwd();
     start_server(port);
     return EXIT_SUCCESS;
