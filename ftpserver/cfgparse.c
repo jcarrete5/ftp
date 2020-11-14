@@ -20,11 +20,10 @@
 #define CFG_FILE "out/etc/ftps.conf"
 #define MAX_LINE_LEN (128U)
 
-/* Set initial values for ftps_config. */
-static void init_cfg(void) {
-    ftps_config.port_mode_enabled = true;
-    ftps_config.pasv_mode_enabled = true;
-}
+struct config ftps_config = {
+    .port_mode_enabled=true,
+    .pasv_mode_enabled=true
+};
 
 /* Return true if line is blank, otherwise false. */
 static bool is_blank(const char *line) {
@@ -66,7 +65,6 @@ static void update_cfg(const char *key, const char *value, unsigned lineno) {
 
 /* Read the ftps config file and set ftps_config appropriately. */
 void read_cfg(void) {
-    init_cfg();
     FILE *conffile = fopen(CFG_FILE, "r");
     if (!conffile) {
         logerr("Main: failed to open configuration file (fopen: %s)", strerror(errno));
