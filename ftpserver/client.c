@@ -32,7 +32,8 @@
 #include "cfgparse.h"
 
 #define DATA_ROOT_PREFIX "./out/srv/ftps"
-#define MAX_ARG_LEN 2048U
+#define MAX_ARG_LEN (2048U)
+#define MAX_LOGIN_ATTEMPTS (3U)
 
 /* Sorted (ascending) list of supported commands. */
 static const char *supported_cmds[] = {
@@ -85,6 +86,9 @@ enum reply_code {
 /* Buffer for data received from server-PI. */
 static struct sockbuf pi_buf = {0};
 
+/* True while the loop is running. Set to false to stop the loop. */
+static bool loop_running = true;
+
 /* Absolute path of the server data directory */
 static char root[PATH_MAX];
 /* State for the client connection. */
@@ -94,6 +98,7 @@ static struct {
     struct sockaddr_storage port_addr;  /* Address used when PORT variant is issued */
     int id;                   /* Connection ID */
     int sockpi;               /* sockfd for protocol interpreter */
+    unsigned failed_logins;   /* Number of failed login attempts */
     pthread_t listen_tid;     /* pthread ID for the thread listening in (e)passive mode */
     bool dtp_ready;           /* True if the DTP is configured and ready for communication */
     bool passive;             /* True for passive mode, false for port mode */
@@ -320,6 +325,12 @@ static int get_next_cmd(char cmd[5], char arg[], size_t arglen) {
     return -1;
 }
 
+static void drop_client(void) {
+    reply_with(SERVER_NA, "Too many failed login attempts", false);
+    loop_running = false;
+    logwarn("Conn %d: too many failed login attemps; dropping", state.id);
+}
+
 /* Handle USER command from client. */
 static void handle_USER(const char uname[MAX_ARG_LEN]) {
     state.auth = false;
@@ -327,7 +338,11 @@ static void handle_USER(const char uname[MAX_ARG_LEN]) {
         strcpy(state.uname, uname);
         reply_with(NEED_PASS, NULL, false);
     } else {
-        reply_with(USER_LOGIN_FAIL, NULL, false);
+        if (++state.failed_logins >= MAX_LOGIN_ATTEMPTS) {
+            drop_client();
+        } else {
+            reply_with(USER_LOGIN_FAIL, NULL, false);
+        }
     }
 }
 
@@ -340,12 +355,20 @@ static void handle_PASS(const char passwd[MAX_ARG_LEN]) {
         } else {
             state.auth = false;
             state.uname[0] = '\0';
-            reply_with(USER_LOGIN_FAIL, NULL, false);
+            if (++state.failed_logins >= MAX_LOGIN_ATTEMPTS) {
+                drop_client();
+            } else {
+                reply_with(USER_LOGIN_FAIL, NULL, false);
+            }
         }
     } else {
         state.auth = false;
         state.uname[0] = '\0';
-        reply_with(BAD_SEQ, NULL, false);
+        if (++state.failed_logins >= MAX_LOGIN_ATTEMPTS) {
+            drop_client();
+        } else {
+            reply_with(BAD_SEQ, NULL, false);
+        }
     }
 }
 
@@ -891,7 +914,7 @@ void handle_new_client(const int id, const int sockpi) {
 
     /* Start response loop */
     char cmd[5], arg[MAX_ARG_LEN];
-    while (true) {
+    while (loop_running) {
         if (get_next_cmd(cmd, arg, MAX_ARG_LEN) < 0) continue;
         loginfo("Conn %d: received %s", state.id, cmd);
         if (strcmp(cmd, "USER") == 0) {
