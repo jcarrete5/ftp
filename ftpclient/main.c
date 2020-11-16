@@ -25,6 +25,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #include "repl.h"
 #include "log.h"
@@ -105,6 +107,31 @@ static uint16_t valid_port(const char *port) {
     return val;
 }
 
+static SSL_CTX *get_ssl_context(void) {
+    SSL_CTX *ctx = SSL_CTX_new(TLS_client_method());
+    if (!ctx) {
+        perror("Failed to get SSL context");
+        logerr("Failed to create SSL_CTX (SSL_CTX_new: %s)",
+               ERR_error_string(ERR_get_error(), NULL));
+        exit(EXIT_FAILURE);
+    }
+    return ctx;
+}
+
+static SSL *do_ssl_handshake(int sock) {
+    SSL_CTX *ctx = get_ssl_context();
+    SSL *ssl = SSL_new(ctx);
+    if (!ssl) {
+        logerr("Main: failed to create SSL (SSL_new: %s)",
+               ERR_error_string(ERR_get_error(), NULL));
+    }
+    if (SSL_set_fd(ssl, sock) == 0) {
+        logerr("Main: failed to set fd (SSL_set_fd: %s)",
+               ERR_error_string(ERR_get_error(), NULL));
+    }
+    return ssl;
+}
+
 /*
  * Initialize connection between user-PI and server-PI. Then hand off control
  * to the REPL.
@@ -126,6 +153,7 @@ static void init_conn(struct addrinfo *const addrlist) {
             loginfo("Connected to %s", ipstr);
             printf("Connected to %s\n", ipstr);
             freeaddrinfo(addrlist);
+            do_ssl_handshake(sock);
             repl(sock, ipstr);
             return;
         } else {

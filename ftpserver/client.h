@@ -9,7 +9,9 @@
 #ifndef FTPS_CLIENT_H
 #define FTPS_CLIENT_H
 
+#include <openssl/ssl.h>
+
 /* Start handling commands from a newly connected client. */
-void handle_new_client(const int conn_id, const int sockpi);
+void handle_new_client(const int conn_id, const int sockpi, SSL *ssl);
 
 #endif /* FTPS_CLIENT_H */

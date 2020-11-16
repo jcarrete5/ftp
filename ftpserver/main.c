@@ -22,6 +22,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #include "log.h"
 #include "misc.h"
@@ -29,7 +31,6 @@
 #include "auth.h"
 #include "cfgparse.h"
 
-#include <openssl/ssl.h>
 
 /* True while the server is accepting connections. Set to false to stop. */
 static bool accept_connections = true;
@@ -93,8 +94,26 @@ static void setup_sighandlers(void) {
     sigaction(SIGCHLD, &sigchld, NULL);
 }
 
+static SSL_CTX *get_ssl_context(void) {
+    SSL_CTX *ctx = SSL_CTX_new(TLS_server_method());
+    if (!ctx) {
+        logerr("Main: failed to create SSL_CTX (SSL_CTX_new: %s)",
+               ERR_error_string(ERR_get_error(), NULL));
+        exit(EXIT_FAILURE);
+    }
+    if (0 == SSL_CTX_load_verify_locations(ctx, "out/etc/certs/myCA.pem", NULL)) {
+        logerr("Main: failed to load cert location (SSL_CTX_load_verify_locations: %s)",
+               ERR_error_string(ERR_get_error(), NULL));
+        exit(EXIT_FAILURE);
+    }
+    loginfo("Main: certs loaded");
+    return ctx;
+}
+
 /* Start the server listening for connections on `port`. */
 static void start_server(const uint16_t port) {
+    SSL_CTX *ctx = get_ssl_context();
+
     /* Create listen socket */
     int socklisten = socket(AF_INET, SOCK_STREAM, 0);
     if (socklisten < 0) {
@@ -120,6 +139,7 @@ static void start_server(const uint16_t port) {
     socklen_t addrlen = sizeof addr;
     pid_t pid = 1;  /* Set to 1 so the loop continues in case of initial error */
     int sockclient, conn_count = 0;
+    SSL *ssl;
     do {
         if ((sockclient=accept(socklisten, (struct sockaddr *)&addr, &addrlen)) == -1) {
             if (errno != EINTR) {
@@ -127,6 +147,24 @@ static void start_server(const uint16_t port) {
             }
         } else {
             loginfo("Main: accepted a connection from %s", addrtostr(&addr));
+            /* Init SSL connection */
+            ssl = SSL_new(ctx);
+            if (!ssl) {
+                logwarn("Main: failed to create SSL (SSL_new: %s)",
+                        ERR_error_string(ERR_get_error(), NULL));
+                continue;
+            }
+            if (SSL_set_fd(ssl, sockclient) == 0) {
+                logwarn("Main: failed to set fd (SSL_set_fd: %s)",
+                        ERR_error_string(ERR_get_error(), NULL));
+                continue;
+            }
+            int err;
+            if ((err=SSL_accept(ssl))) {
+                const char *str = ERR_error_string(SSL_get_error(ssl, err), NULL);
+                logwarn("Main: failed TLS handshake (SSL_accept: %s)", str);
+                continue;
+            }
             conn_count++;
             if ((pid=fork()) == -1) {
                 logwarn("Main: error forking a process for accepted connection "
@@ -141,7 +179,7 @@ static void start_server(const uint16_t port) {
         loginfo("Main: no longer accepting connections");
         /* TODO: Wait for children to end */
     } else  /* in child */ {
-        handle_new_client(conn_count, sockclient);
+        handle_new_client(conn_count, sockclient, ssl);
     }
 }
 

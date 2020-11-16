@@ -23,6 +23,8 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #include "log.h"
 #include "client.h"
@@ -93,6 +95,7 @@ static bool loop_running = true;
 static char root[PATH_MAX];
 /* State for the client connection. */
 static struct {
+    SSL *ssl;                 /* SSL state structure */
     char cwd[PATH_MAX];       /* Current working directory */
     char uname[MAX_ARG_LEN];  /* Username */
     struct sockaddr_storage port_addr;  /* Address used when PORT variant is issued */
@@ -895,8 +898,9 @@ static void handle_RETR(char *path) {
 }
 
 /* Start handling commands from a newly connected client. */
-void handle_new_client(const int id, const int sockpi) {
+void handle_new_client(const int id, const int sockpi, SSL *ssl) {
     /* Initialize state */
+    state.ssl = ssl;
     state.id = id;
     state.sockpi = sockpi;
     strcpy(state.cwd, "/");
