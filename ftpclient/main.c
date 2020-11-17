@@ -121,13 +121,18 @@ static SSL_CTX *get_ssl_context(void) {
 static SSL *do_ssl_handshake(int sock) {
     SSL_CTX *ctx = get_ssl_context();
     SSL *ssl = SSL_new(ctx);
+    int errcode;
     if (!ssl) {
-        logerr("Main: failed to create SSL (SSL_new: %s)",
+        logerr("Failed to create SSL (SSL_new: %s)",
                ERR_error_string(ERR_get_error(), NULL));
     }
     if (SSL_set_fd(ssl, sock) == 0) {
-        logerr("Main: failed to set fd (SSL_set_fd: %s)",
+        logerr("Failed to set fd (SSL_set_fd: %s)",
                ERR_error_string(ERR_get_error(), NULL));
+    }
+    if ((errcode=SSL_connect(ssl)) < 1) {
+        logerr("Failed to perfom handshake (SSL_connect: %s",
+               ERR_error_string(SSL_get_error(ssl, errcode), NULL));
     }
     return ssl;
 }
