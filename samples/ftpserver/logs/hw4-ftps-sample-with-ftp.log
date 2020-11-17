@@ -1,0 +1,40 @@
+Tue Nov 17 13:14:10 2020 [INFO] Main: configuration file loaded
+Tue Nov 17 13:14:10 2020 [INFO] Main: now accepting connections
+Tue Nov 17 13:14:21 2020 [INFO] Main: accepted a connection from 127.0.0.1:50524
+Tue Nov 17 13:14:21 2020 [INFO] Conn 1: sent reply '220 Service ready for new user.'
+Tue Nov 17 13:14:24 2020 [INFO] Conn 1: received USER
+Tue Nov 17 13:14:24 2020 [INFO] Conn 1: sent reply '331 User name okay, need password.'
+Tue Nov 17 13:14:25 2020 [INFO] Conn 1: received PASS
+Tue Nov 17 13:14:25 2020 [INFO] Conn 1: sent reply '230 User logged in, proceed.'
+Tue Nov 17 13:14:25 2020 [WARN] Conn 1: unsupported command 'SYST'; resetting pi_buf
+Tue Nov 17 13:14:25 2020 [INFO] Conn 1: sent reply '502 Command not implemented.'
+Tue Nov 17 13:14:28 2020 [INFO] Conn 1: received PORT
+Tue Nov 17 13:14:28 2020 [INFO] Conn 1: PORT address is 127.0.0.1:60135
+Tue Nov 17 13:14:28 2020 [INFO] Conn 1: sent reply '200 Command okay.'
+Tue Nov 17 13:14:28 2020 [INFO] Conn 1: received LIST
+Tue Nov 17 13:14:28 2020 [INFO] Conn 1: sent reply '150 Here comes the directory listing'
+Tue Nov 17 13:14:28 2020 [INFO] Conn 1: sent reply '226 Directory send OK'
+Tue Nov 17 13:14:31 2020 [INFO] Conn 1: received PASV
+Tue Nov 17 13:14:31 2020 [INFO] Conn 1: sent reply '500 PASV is not allowed on the server'
+Tue Nov 17 13:14:31 2020 [WARN] Conn 1: unsupported command 'LPSV'; resetting pi_buf
+Tue Nov 17 13:14:31 2020 [INFO] Conn 1: sent reply '502 Command not implemented.'
+Tue Nov 17 13:14:39 2020 [INFO] Conn 1: received PORT
+Tue Nov 17 13:14:39 2020 [INFO] Conn 1: PORT address is 127.0.0.1:50473
+Tue Nov 17 13:14:39 2020 [INFO] Conn 1: sent reply '200 Command okay.'
+Tue Nov 17 13:14:39 2020 [INFO] Conn 1: received LIST
+Tue Nov 17 13:14:39 2020 [INFO] Conn 1: sent reply '150 Here comes the directory listing'
+Tue Nov 17 13:14:39 2020 [INFO] Conn 1: sent reply '226 Directory send OK'
+Tue Nov 17 13:14:44 2020 [INFO] Conn 1: received QUIT
+Tue Nov 17 13:14:44 2020 [INFO] Conn 1: sent reply '221 Service closing control connection.'
+Tue Nov 17 13:14:44 2020 [INFO] Main: got SIGCHLD
+Tue Nov 17 13:14:52 2020 [INFO] Main: accepted a connection from 127.0.0.1:50536
+Tue Nov 17 13:14:52 2020 [INFO] Conn 2: sent reply '220 Service ready for new user.'
+Tue Nov 17 13:14:54 2020 [INFO] Conn 2: received USER
+Tue Nov 17 13:14:54 2020 [INFO] Conn 2: sent reply '331 User name okay, need password.'
+Tue Nov 17 13:14:55 2020 [INFO] Conn 2: received PASS
+Tue Nov 17 13:14:55 2020 [INFO] Conn 2: sent reply '530 Not logged in.'
+Tue Nov 17 13:14:55 2020 [WARN] Conn 2: unsupported command 'SYST'; resetting pi_buf
+Tue Nov 17 13:14:55 2020 [INFO] Conn 2: sent reply '502 Command not implemented.'
+Tue Nov 17 13:17:58 2020 [INFO] Main: keyboard interrupt
+Tue Nov 17 13:17:58 2020 [INFO] Main: keyboard interrupt
+Tue Nov 17 13:17:58 2020 [INFO] Main: no longer accepting connections
