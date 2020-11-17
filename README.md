@@ -7,7 +7,8 @@ questions are answered in the READMEs in the `ftpclient/` and `ftpserver/`
 subdirectories. The `common/` subdirectory contains source code common to both
 client and server implementations.
 
-**Homework 4 questions are answered in `HW4.pdf`**
+**Homework 4 questions are answered in `HW4.pdf`**. See `ftpserver/README.md`
+for information on the configuration file, `ftps.conf`.
 
 This application was built and run on tux using the clang compiler. The
 following build instructions explain how to compile both the client and
