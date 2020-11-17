@@ -1,0 +1,75 @@
+Tue Nov 17 12:50:21 2020 [INFO] Trying ::1
+Tue Nov 17 12:50:21 2020 [WARN] Failed to connect to ::1; trying another address
+Tue Nov 17 12:50:21 2020 [INFO] Trying 127.0.0.1
+Tue Nov 17 12:50:21 2020 [INFO] Connected to 127.0.0.1
+Tue Nov 17 12:50:21 2020 [INFO] Received: 220 Service ready for new user.
+Tue Nov 17 12:50:24 2020 [INFO] Sent: USER alice
+Tue Nov 17 12:50:24 2020 [INFO] Received: 331 User name okay, need password.
+Tue Nov 17 12:50:30 2020 [INFO] Sent: PASS blowfis
+Tue Nov 17 12:50:30 2020 [INFO] Received: 530 Not logged in.
+Tue Nov 17 12:50:33 2020 [INFO] Sent: USER alice
+Tue Nov 17 12:50:33 2020 [INFO] Received: 331 User name okay, need password.
+Tue Nov 17 12:50:34 2020 [INFO] Sent: PASS asdfa
+Tue Nov 17 12:50:34 2020 [INFO] Received: 530 Not logged in.
+Tue Nov 17 12:50:36 2020 [INFO] Sent: USER aveadf
+Tue Nov 17 12:50:36 2020 [INFO] Received: 421 Too many failed login attempts
+Tue Nov 17 12:50:36 2020 [INFO] Closing user-PI socket
+Tue Nov 17 12:51:07 2020 [INFO] Trying ::1
+Tue Nov 17 12:51:07 2020 [WARN] Failed to connect to ::1; trying another address
+Tue Nov 17 12:51:07 2020 [INFO] Trying 127.0.0.1
+Tue Nov 17 12:51:07 2020 [INFO] Connected to 127.0.0.1
+Tue Nov 17 12:51:07 2020 [INFO] Received: 220 Service ready for new user.
+Tue Nov 17 12:51:09 2020 [INFO] Sent: USER bob
+Tue Nov 17 12:51:09 2020 [INFO] Received: 331 User name okay, need password.
+Tue Nov 17 12:51:11 2020 [INFO] Sent: PASS password
+Tue Nov 17 12:51:11 2020 [INFO] Received: 230 User logged in, proceed.
+Tue Nov 17 12:51:17 2020 [INFO] Sent: PASV
+Tue Nov 17 12:51:17 2020 [INFO] Received: 227 Entering passive mode (127,0,0,1,220,25)
+Tue Nov 17 12:51:17 2020 [INFO] Sent: LIST
+Tue Nov 17 12:51:17 2020 [INFO] Received: 150 Here comes the directory listing
+Tue Nov 17 12:51:17 2020 [INFO] Received: 226 Directory send OK
+Tue Nov 17 12:51:19 2020 [INFO] Sent: QUIT
+Tue Nov 17 12:51:19 2020 [INFO] Received: 221 Service closing control connection.
+Tue Nov 17 12:51:19 2020 [INFO] Closing user-PI socket
+Tue Nov 17 12:54:11 2020 [INFO] Trying ::1
+Tue Nov 17 12:54:11 2020 [WARN] Failed to connect to ::1; trying another address
+Tue Nov 17 12:54:11 2020 [INFO] Trying 127.0.0.1
+Tue Nov 17 12:54:11 2020 [INFO] Connected to 127.0.0.1
+Tue Nov 17 12:54:11 2020 [INFO] Received: 220 Service ready for new user.
+Tue Nov 17 12:54:13 2020 [INFO] Sent: USER alice
+Tue Nov 17 12:54:13 2020 [INFO] Received: 331 User name okay, need password.
+Tue Nov 17 12:54:15 2020 [INFO] Sent: PASS blowfish
+Tue Nov 17 12:54:15 2020 [INFO] Received: 230 User logged in, proceed.
+Tue Nov 17 12:54:19 2020 [INFO] Sent: PORT 127,0,0,1,138,227
+Tue Nov 17 12:54:19 2020 [INFO] Waiting for a connection to user-DTP
+Tue Nov 17 12:54:19 2020 [INFO] Received: 500 PORT is not allowed on the server
+Tue Nov 17 12:54:19 2020 [ERROR] Error during accept_server
+Tue Nov 17 12:54:30 2020 [INFO] Sent: PASV
+Tue Nov 17 12:54:30 2020 [INFO] Received: 227 Entering passive mode (127,0,0,1,223,71)
+Tue Nov 17 12:54:30 2020 [INFO] Sent: LIST
+Tue Nov 17 12:54:30 2020 [INFO] Received: 150 Here comes the directory listing
+Tue Nov 17 12:54:30 2020 [INFO] Received: 226 Directory send OK
+Tue Nov 17 12:54:34 2020 [INFO] Sent: QUIT
+Tue Nov 17 12:54:34 2020 [INFO] Received: 221 Service closing control connection.
+Tue Nov 17 12:54:34 2020 [INFO] Closing user-PI socket
+Tue Nov 17 12:54:57 2020 [INFO] Trying ::1
+Tue Nov 17 12:54:57 2020 [WARN] Failed to connect to ::1; trying another address
+Tue Nov 17 12:54:57 2020 [INFO] Trying 127.0.0.1
+Tue Nov 17 12:54:57 2020 [INFO] Connected to 127.0.0.1
+Tue Nov 17 12:54:57 2020 [INFO] Received: 220 Service ready for new user.
+Tue Nov 17 12:55:00 2020 [INFO] Sent: USER bob
+Tue Nov 17 12:55:00 2020 [INFO] Received: 331 User name okay, need password.
+Tue Nov 17 12:55:01 2020 [INFO] Sent: PASS password
+Tue Nov 17 12:55:01 2020 [INFO] Received: 230 User logged in, proceed.
+Tue Nov 17 12:55:05 2020 [INFO] Sent: PASV
+Tue Nov 17 12:55:05 2020 [INFO] Received: 500 PASV is not allowed on the server
+Tue Nov 17 12:55:13 2020 [INFO] Sent: PORT 127,0,0,1,233,179
+Tue Nov 17 12:55:13 2020 [INFO] Waiting for a connection to user-DTP
+Tue Nov 17 12:55:13 2020 [INFO] Received: 200 Command okay.
+Tue Nov 17 12:55:13 2020 [INFO] Sent: LIST
+Tue Nov 17 12:55:13 2020 [INFO] Received: 150 Here comes the directory listing
+Tue Nov 17 12:55:13 2020 [INFO] Got for a connection to user-DTP
+Tue Nov 17 12:55:13 2020 [INFO] Received: 226 Directory send OK
+Tue Nov 17 12:55:22 2020 [INFO] Sent: QUIT
+Tue Nov 17 12:55:22 2020 [INFO] Received: 221 Service closing control connection.
+Tue Nov 17 12:55:22 2020 [INFO] Closing user-PI socket
