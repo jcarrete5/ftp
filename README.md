@@ -9,6 +9,10 @@ client and server implementations.
 
 **Homework 4 questions are answered in `HW4.pdf`**
 
+This application was built and run on tux using the clang compiler. The
+following build instructions explain how to compile both the client and
+server.
+
 Build Instructions
 ------------------
 Create a directory for output files in the project root (same location as
